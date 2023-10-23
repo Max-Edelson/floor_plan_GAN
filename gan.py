@@ -13,10 +13,11 @@ import torchvision.transforms as transforms
 import torchvision.datasets as dset
 import torchvision.utils as vutils
 import matplotlib.pyplot as plt
-
+from dataset import floorPlanDataset
 
 CUDA = False
 DATA_PATH = './data'
+OUTPUT_PATH = 'output_examples/'
 BATCH_SIZE = 128
 IMAGE_CHANNEL = 1 #All images in MNIST are single channel, which means the gray scale image. Therefore, a value of IMAGE_CHANNEL is 1.
 Z_DIM = 100 # Size of z latent vector (i.e. size of generator input). It is used to generate random numbers for the generator.
@@ -28,7 +29,8 @@ REAL_LABEL = 1
 FAKE_LABEL = 0
 lr = 2e-4
 seed = 1
-
+resize_h = 500
+resize_w = 500
 
 CUDA = CUDA and torch.cuda.is_available()
 print("PyTorch version: {}".format(torch.__version__))
@@ -41,16 +43,19 @@ device = torch.device("cuda:0" if CUDA else "cpu")
 cudnn.benchmark = True
 
 # Data preprocessing
-dataset = dset.MNIST(root=DATA_PATH, download=True,
-                     transform=transforms.Compose([
-                     transforms.Resize(X_DIM),
-                     transforms.ToTensor(),
-                     transforms.Normalize((0.5,), (0.5,))
-                     ]))
+
+data = floorPlanDataset() #transform=transforms.Resize(size=(resize_h, resize_w)))
 
 # Dataloader
-dataloader = torch.utils.data.DataLoader(dataset, batch_size=BATCH_SIZE,
-                                         shuffle=True, num_workers=2)
+dataloader = torch.utils.data.DataLoader(data, batch_size=BATCH_SIZE,
+                                         shuffle=True)
+
+'''
+img0 = data.__getitem__(0)
+print(img0.shape)
+plt.imshow(img0.T)
+plt.savefig(OUTPUT_PATH + 'img0_original.png')
+'''
 
 real_batch = next(iter(dataloader))
 plt.figure(figsize=(8,8))
@@ -141,7 +146,6 @@ viz_noise = torch.randn(BATCH_SIZE, Z_DIM, 1, 1, device=device)
 # Setup Adam optimizers for both G and D
 optimizerD = optim.Adam(netD.parameters(), lr=lr, betas=(0.5, 0.999))
 optimizerG = optim.Adam(netG.parameters(), lr=lr, betas=(0.5, 0.999))
-
 
 # Training Loop
 
