@@ -21,37 +21,34 @@ dataset = dset.MNIST(root=DATA_PATH, download=True,
 '''
 
 class floorPlanDataset(Dataset):
-    def __init__(self, root_dir=None, transform=None):
+    def __init__(self, path, transform=None):
         """
         Arguments:
             root_dir (string): Directory with all the images.
             transform (callable, optional): Optional transform to be applied
                 on a sample.
         """
-        self.root_dir = root_dir
         self.transform = transform
 
         # List of all images in our dataset
         self.img_list = []
-        for folder in ['test-00', 'train-00', 'train-01']:
+        #for folder in ['test-00', 'train-00', 'train-01']:
 
-            img_dir = os.listdir(os.path.join('data', 'floorplan', folder, 'coco_vis'))
-            img_dir = [os.path.join('data', 'floorplan', folder, 'coco_vis', img_path) for img_path in img_dir]
-            self.img_list.extend(img_dir)
+            #img_dir = os.listdir(os.path.join('data', 'floorplan', folder, 'coco_vis'))
+            #img_dir = [os.path.join('data', 'floorplan', folder, 'coco_vis', img_path) for img_path in img_dir]
+        for img in os.listdir(path):
+            img = os.path.join(path, img)
+            self.img_list.append(img)
         
     def __len__(self):
         return len(self.img_list)
 
     def __getitem__(self, idx):
-        
-        
         img = self.img_list[idx]
         img = read_image(img)
 
         if self.transform:
-            print(f'pretransform: {img.shape}')
             img = self.transform(img[:3])
-            print(f'posttransform: {img.shape}')
 
         return img
 
