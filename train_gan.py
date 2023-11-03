@@ -19,8 +19,9 @@ from GAN_model import Generator, Discriminator
 from tqdm import tqdm as progress_bar
 import pandas as pd
 from copy import deepcopy
+import pdb
 
-dataset='floorplan' # or 'mnist'
+dataset = 'floorplan'  # or 'mnist'
 
 resize_h = 500
 resize_w = 500
@@ -28,13 +29,13 @@ resize_w = 500
 CUDA = True
 DATA_PATH = './data'
 OUTPUT_PATH = 'output_examples/'
-BATCH_SIZE = 64
-IMAGE_CHANNEL = 3 if dataset=='floorplan' else 1 #All images in MNIST are single channel, which means the gray scale image. Therefore, a value of IMAGE_CHANNEL is 1.
-Z_DIM = 500 # Size of z latent vector (i.e. size of generator input). It is used to generate random numbers for the generator.
-G_HIDDEN = 320 # Size of feature maps in the generator that are propagated through the generator.
-X_DIM = resize_h # An original image size in MNIST is 28x28. I will change 28x28 to 64x64 with a resize module for the network.
-D_HIDDEN = 320 # Size of feature maps in the discriminator.
-EPOCH_NUM = 5 # The number of times the entire training dataset is trained in the network. Lager epoch number is better, but you should be careful of overfitting.
+BATCH_SIZE = 1
+IMAGE_CHANNEL = 3 if dataset == 'floorplan' else 1  # All images in MNIST are single channel, which means the gray scale image. Therefore, a value of IMAGE_CHANNEL is 1.
+Z_DIM = 500  # Size of z latent vector (i.e. size of generator input). It is used to generate random numbers for the generator.
+G_HIDDEN = 320  # Size of feature maps in the generator that are propagated through the generator.
+X_DIM = resize_h  # An original image size in MNIST is 28x28. I will change 28x28 to 64x64 with a resize module for the network.
+D_HIDDEN = 320  # Size of feature maps in the discriminator.
+EPOCH_NUM = 5  # The number of times the entire training dataset is trained in the network. Lager epoch number is better, but you should be careful of overfitting.
 REAL_LABEL = 1
 FAKE_LABEL = 0
 lr = 2e-4
@@ -48,13 +49,12 @@ if CUDA:
 if CUDA:
     torch.cuda.manual_seed(seed)
 device = torch.device("cuda:0" if CUDA else "cpu")
-#print(f'device: {device}, torch.cuda.is_available(): {torch.cuda.is_available()}, CUDA: {CUDA}')
+# print(f'device: {device}, torch.cuda.is_available(): {torch.cuda.is_available()}, CUDA: {CUDA}')
 cudnn.benchmark = True
 
 # Data preprocessing
 
-#data = floorPlanDataset() #transform=transforms.Resize(size=(resize_h, resize_w)))
-
+# data = floorPlanDataset() #transform=transforms.Resize(size=(resize_h, resize_w)))
 
 
 '''
@@ -71,6 +71,7 @@ plt.title("Training Images")
 plt.imshow(np.transpose(vutils.make_grid(real_batch[0].to(device)[:64], padding=2, normalize=True).cpu(),(1,2,0)))
 '''
 
+
 def weights_init(m):
     classname = m.__class__.__name__
     if classname.find('Conv') != -1:
@@ -79,14 +80,17 @@ def weights_init(m):
         m.weight.data.normal_(1.0, 0.02)
         m.bias.data.fill_(0)
 
+
 def save_model(model, path):
     torch.save(model.state_dict(), path)
+
 
 def load_generator(path):
     netG = Generator().to(device)
     netG.load_state_dict(torch.load(path))
     netG.eval()
     return netG
+
 
 def load_discriminator(path):
     netD = Discriminator().to(device)
@@ -96,12 +100,11 @@ def load_discriminator(path):
 
 
 def save_experiment(fake_img_list, real_img_list, timestr, best_g_loss, best_d_loss, G_loss, D_loss, D, G):
-
     os.mkdir('results', timestr)
 
     # Save discriminator and generator models
-    save_experiment(D, os.path.join('results', timestr, 'Discriminator.pth'))
-    save_experiment(G, os.path.join('results', timestr, 'Generator.pth'))
+    save_model(D, os.path.join('results', timestr, 'Discriminator.pth'))
+    save_model(G, os.path.join('results', timestr, 'Generator.pth'))
 
     trial_dict = {
         'Model name': [timestr],
@@ -116,53 +119,51 @@ def save_experiment(fake_img_list, real_img_list, timestr, best_g_loss, best_d_l
 
     # Save statistics to a csv file
     trial_dict = pd.DataFrame(trial_dict)
-    trial_dict.to_csv(os.path.join('results', timestr, 'metrics.csv', index=False, header=True))
+    trial_dict.to_csv(os.path.join('results', timestr, 'metrics.csv'), index=False, header=True)
 
-     # Grab a batch of real images from the dataloader
+    # Grab a batch of real images from the dataloader
     real_batch = next(iter(dataloader))
 
     # Plot the real images
-    plt.figure(figsize=(15,15))
-    plt.subplot(1,2,1)
+    plt.figure(figsize=(15, 15))
+    plt.subplot(1, 2, 1)
     plt.axis("off")
     plt.title("Real Images")
-    plt.imshow(np.transpose(vutils.make_grid(real_batch[0].to(device)[:64], padding=5, normalize=True).cpu(),(1,2,0)))
+    plt.imshow(
+        np.transpose(vutils.make_grid(real_batch[0].to(device)[:64], padding=5, normalize=True).cpu(), (1, 2, 0)))
     plt.imsave(os.path.join('results', timestr, 'fake_images.png'))
 
     # Plot the fake images from the last epoch
-    plt.subplot(1,2,2)
+    plt.subplot(1, 2, 2)
     plt.axis("off")
     plt.title("Fake Images")
-    plt.imshow(np.transpose(img_list[-1],(1,2,0)))
+    plt.imshow(np.transpose(real_img_list[-1], (1, 2, 0)))
     plt.imsave(os.path.join('results', timestr, 'real_images.png'))
 
     plt.plot(G_loss)
     plt.title('Generator Loss during Training')
-    plt.xtitle('# of Iterations')
-    plt.ytitle('Generator Los')
+    plt.xlabel('# of Iterations')
+    plt.ylabel('Generator Los')
     plt.imsave(os.path.join('results', timestr, 'generator_loss.png'))
 
     plt.plot(D_loss)
     plt.title('Discriminator Loss during Training')
-    plt.xtitle('# of Iterations')
-    plt.ytitle('Discriminator Loss')
+    plt.xlabel('# of Iterations')
+    plt.ylabel('Discriminator Loss')
     plt.imsave(os.path.join('results', timestr, 'discriminator_loss.png'))
-    
+
 
 def train(dataloader):
-
     timestr = time.strftime("%Y%m%d-%H%M%S")
 
     # Create the generator
-    #netG = torch.compile(Generator()).to(device)
+    # netG = torch.compile(Generator()).to(device)
     netG = Generator().to(device)
-    netG.apply(weights_init)
     print(netG)
 
     # Create the discriminator
-    #netD = torch.compile(Discriminator()).to(device)
+    # netD = torch.compile(Discriminator()).to(device)
     netD = Discriminator().to(device)
-    netD.apply(weights_init)
     print(netD)
 
     # Initialize BCELoss function
@@ -193,7 +194,9 @@ def train(dataloader):
         epoch_D_Loss = 0
 
         for i, (data) in progress_bar(enumerate(dataloader), total=len(dataloader)):
-            #print(f'data: {data.shape}')
+            # print(f'data: {data.shape}')
+
+            pdb.set_trace()
 
             # (1) Update the discriminator with real data
             netD.zero_grad()
@@ -203,7 +206,7 @@ def train(dataloader):
             label = torch.full((b_size,), REAL_LABEL, dtype=torch.float, device=device)
 
             # Forward pass real batch through D
-            output = netD(real_cpu).view(-1)
+            output = netD(real_cpu)
             print(f'output.shape: {output.shape}, label: {label.shape}')
 
             # Calculate loss on all-real batch
@@ -267,23 +270,22 @@ def train(dataloader):
             epoch_G_Loss += errG.item()
 
             # Check how the generator is doing by saving G's output on fixed_noise
-            if (iters % 500 == 0) or ((epoch == EPOCH_NUM-1) and (i == len(dataloader)-1)):
+            if (iters % 500 == 0) or ((epoch == EPOCH_NUM - 1) and (i == len(dataloader) - 1)):
                 with torch.no_grad():
                     fake = netG(viz_noise).detach().cpu()
                 img_list.append(vutils.make_grid(fake, padding=2, normalize=True))
 
             iters += 1
-        
+
         epoch_D_Loss /= len(dataloader)
-        epoch_G_Loss /= len(dataloader)   
-        
+        epoch_G_Loss /= len(dataloader)
+
         if best_D_Loss in None or epoch_D_Loss < best_D_Loss:
             best_D_Loss = epoch_D_Loss
             best_d_model = deepcopy(netD)
         if best_G_Loss in None or epoch_G_Loss < best_G_Loss:
             best_G_Loss = epoch_G_Loss
-            best_G_model = deepcopy(netG)
-        
+            best_g_model = deepcopy(netG)
 
     total_training_time = time.process_time() - training_start
     print(f'Total training time (s): %.2f' % total_training_time)
@@ -291,9 +293,10 @@ def train(dataloader):
     # Grab a batch of real images from the dataloader
     real_images = next(iter(dataloader))
 
-    save_experiment(img_list, real_images, timestr, best_G_Loss, best_D_Loss, G_losses, D_losses, best_d_model, best_g_model)
+    save_experiment(img_list, real_images, timestr, best_G_Loss, best_D_Loss, G_losses,
+                    D_losses, best_d_model, best_g_model)
 
-    
+
 if __name__ == '__main__':
     '''data = dset.MNIST(root=DATA_PATH, download=True,
                      transform=transforms.Compose([
@@ -301,9 +304,9 @@ if __name__ == '__main__':
                      transforms.ToTensor(),
                      transforms.Normalize((0.5,), (0.5,))
                      ]))'''
-    new_folder_name='resized_500x500'
+    new_folder_name = 'resized_500x500'
     path = os.path.join('data', 'floorplan', new_folder_name)
-    data = floorPlanDataset(path=path) 
+    data = floorPlanDataset(path=path, transform=transforms.Resize((128, 128)))
     # Dataloader
     dataloader = torch.utils.data.DataLoader(data, batch_size=BATCH_SIZE,
                                              shuffle=True, num_workers=0)
