@@ -10,9 +10,6 @@ import torch.optim as optim
 import torch.utils.data
 import pdb
 
-resize_h = 500
-resize_w = 500
-
 dataset = 'floorplan'
 
 CUDA = True
@@ -22,7 +19,6 @@ BATCH_SIZE = 64
 IMAGE_CHANNEL = 3 if dataset == 'floorplan' else 1  # All images in MNIST are single channel, which means the gray scale image. Therefore, a value of IMAGE_CHANNEL is 1.
 Z_DIM = 500  # Size of z latent vector (i.e. size of generator input). It is used to generate random numbers for the generator.
 G_HIDDEN = 320  # Size of feature maps in the generator that are propagated through the generator.
-X_DIM = resize_h  # An original image size in MNIST is 28x28. I will change 28x28 to 64x64 with a resize module for the network.
 D_HIDDEN = 320  # Size of feature maps in the discriminator.
 EPOCH_NUM = 5  # The number of times the entire training dataset is trained in the network. Lager epoch number is better, but you should be careful of overfitting.
 REAL_LABEL = 1
@@ -37,39 +33,38 @@ class Generator(nn.Module):
 
         # 16x16 images
         self.layer1 = nn.Sequential(
-            nn.ConvTranspose2d(Z_DIM, G_HIDDEN * 6, kernel_size=(16, 16), stride=(16, 16)),
-            nn.BatchNorm2d(G_HIDDEN * 6)
+            nn.ConvTranspose2d(Z_DIM, G_HIDDEN * 8, kernel_size=(4, 4), stride=(4, 4)),
+            nn.BatchNorm2d(G_HIDDEN * 8)
         )
 
         # 32 x 32 images
         self.layer2 = nn.Sequential(
-            nn.ConvTranspose2d(G_HIDDEN * 6, G_HIDDEN * 4, kernel_size=(17, 17), stride=(17, 17)),
+            nn.ConvTranspose2d(G_HIDDEN * 8, G_HIDDEN * 4, kernel_size=(4, 4), stride=(4, 4)),
             nn.BatchNorm2d(G_HIDDEN * 4),
-            nn.ReLU(True),
+            nn.ReLU(),
         )
 
         # 64 x 64 images
         self.layer3 = nn.Sequential(
-            nn.ConvTranspose2d(G_HIDDEN * 4, G_HIDDEN * 2, kernel_size=(33, 33), stride=(33,33)),
+            nn.ConvTranspose2d(G_HIDDEN * 4, G_HIDDEN * 2, kernel_size=(4, 4), stride=(4,4)),
             nn.BatchNorm2d(G_HIDDEN * 2),
-            nn.ReLU(True)
+            nn.ReLU()
         )
 
         # 128 x 128
         self.layer4 = nn.Sequential(
-            nn.ConvTranspose2d(G_HIDDEN * 2, G_HIDDEN, kernel_size=(65, 65), stride=(65, 65)),
+            nn.ConvTranspose2d(G_HIDDEN * 2, G_HIDDEN, kernel_size=(4, 4), stride=(4, 4)),
             nn.BatchNorm2d(G_HIDDEN),
-            nn.ReLU(True)
+            nn.ReLU()
         )
 
         # 256 x 256
         self.output_layer = nn.Sequential(
-            nn.ConvTranspose2d(G_HIDDEN, IMAGE_CHANNEL, kernel_size=(129, 129), stride=(129,129)),
-            nn.Tanh()
+            nn.ConvTranspose2d(G_HIDDEN, IMAGE_CHANNEL, kernel_size=(1, 1), stride=(1,1)),
+            nn.ReLU()
         )
 
     def forward(self, input):
-        pdb.set_trace()
 
         x = self.layer1(input)
         x = self.layer2(x)

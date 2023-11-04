@@ -29,22 +29,19 @@ resize_w = 500
 CUDA = True
 DATA_PATH = './data'
 OUTPUT_PATH = 'output_examples/'
-BATCH_SIZE = 1
+BATCH_SIZE = 32
 IMAGE_CHANNEL = 3 if dataset == 'floorplan' else 1  # All images in MNIST are single channel, which means the gray scale image. Therefore, a value of IMAGE_CHANNEL is 1.
 Z_DIM = 500  # Size of z latent vector (i.e. size of generator input). It is used to generate random numbers for the generator.
 G_HIDDEN = 320  # Size of feature maps in the generator that are propagated through the generator.
 X_DIM = resize_h  # An original image size in MNIST is 28x28. I will change 28x28 to 64x64 with a resize module for the network.
 D_HIDDEN = 320  # Size of feature maps in the discriminator.
-EPOCH_NUM = 5  # The number of times the entire training dataset is trained in the network. Lager epoch number is better, but you should be careful of overfitting.
+EPOCH_NUM = 15  # The number of times the entire training dataset is trained in the network. Lager epoch number is better, but you should be careful of overfitting.
 REAL_LABEL = 1
 FAKE_LABEL = 0
 lr = 2e-4
 seed = 1
 
 CUDA = CUDA and torch.cuda.is_available()
-print("PyTorch version: {}".format(torch.__version__))
-if CUDA:
-    print("CUDA version: {}\n".format(torch.version.cuda))
 
 if CUDA:
     torch.cuda.manual_seed(seed)
@@ -156,15 +153,15 @@ def save_experiment(fake_img_list, real_img_list, timestr, best_g_loss, best_d_l
 def train(dataloader):
     timestr = time.strftime("%Y%m%d-%H%M%S")
 
+    print(device)
+
     # Create the generator
     # netG = torch.compile(Generator()).to(device)
     netG = Generator().to(device)
-    print(netG)
 
     # Create the discriminator
     # netD = torch.compile(Discriminator()).to(device)
     netD = Discriminator().to(device)
-    print(netD)
 
     # Initialize BCELoss function
     criterion = nn.BCELoss()
@@ -196,8 +193,6 @@ def train(dataloader):
         for i, (data) in progress_bar(enumerate(dataloader), total=len(dataloader)):
             # print(f'data: {data.shape}')
 
-            pdb.set_trace()
-
             # (1) Update the discriminator with real data
             netD.zero_grad()
             # Format batch
@@ -207,7 +202,6 @@ def train(dataloader):
 
             # Forward pass real batch through D
             output = netD(real_cpu)
-            print(f'output.shape: {output.shape}, label: {label.shape}')
 
             # Calculate loss on all-real batch
             errD_real = criterion(output, label)
@@ -280,10 +274,10 @@ def train(dataloader):
         epoch_D_Loss /= len(dataloader)
         epoch_G_Loss /= len(dataloader)
 
-        if best_D_Loss in None or epoch_D_Loss < best_D_Loss:
+        if best_D_Loss is None or epoch_D_Loss < best_D_Loss:
             best_D_Loss = epoch_D_Loss
             best_d_model = deepcopy(netD)
-        if best_G_Loss in None or epoch_G_Loss < best_G_Loss:
+        if best_G_Loss is None or epoch_G_Loss < best_G_Loss:
             best_G_Loss = epoch_G_Loss
             best_g_model = deepcopy(netG)
 
@@ -306,8 +300,8 @@ if __name__ == '__main__':
                      ]))'''
     new_folder_name = 'resized_500x500'
     path = os.path.join('data', 'floorplan', new_folder_name)
-    data = floorPlanDataset(path=path, transform=transforms.Resize((128, 128)))
+    data = floorPlanDataset(path=path, transform=transforms.Resize((256, 256)))
     # Dataloader
     dataloader = torch.utils.data.DataLoader(data, batch_size=BATCH_SIZE,
-                                             shuffle=True, num_workers=0)
+                                             shuffle=True)
     train(dataloader)
