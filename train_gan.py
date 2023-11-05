@@ -97,7 +97,7 @@ def load_discriminator(path):
 
 
 def save_experiment(fake_img_list, real_img_list, timestr, best_g_loss, best_d_loss, G_loss, D_loss, D, G):
-    os.mkdir('results', timestr)
+    os.mkdir(os.path.join('results', timestr))
 
     # Save discriminator and generator models
     save_model(D, os.path.join('results', timestr, 'Discriminator.pth'))
@@ -123,19 +123,19 @@ def save_experiment(fake_img_list, real_img_list, timestr, best_g_loss, best_d_l
 
     # Plot the real images
     plt.figure(figsize=(15, 15))
-    plt.subplot(1, 2, 1)
-    plt.axis("off")
-    plt.title("Real Images")
-    plt.imshow(
-        np.transpose(vutils.make_grid(real_batch[0].to(device)[:64], padding=5, normalize=True).cpu(), (1, 2, 0)))
-    plt.imsave(os.path.join('results', timestr, 'fake_images.png'))
+    # plt.subplot(1, 2, 1)
+    # plt.axis("off")
+    # plt.title("Real Images")
+    # plt.imshow(
+    #     np.transpose(vutils.make_grid(real_batch[0].to(device)[:64], padding=5, normalize=True).cpu(), (1, 2, 0)))
+    # plt.imsave(os.path.join('results', timestr, 'fake_images.png'))
 
     # Plot the fake images from the last epoch
-    plt.subplot(1, 2, 2)
-    plt.axis("off")
-    plt.title("Fake Images")
-    plt.imshow(np.transpose(real_img_list[-1], (1, 2, 0)))
-    plt.imsave(os.path.join('results', timestr, 'real_images.png'))
+    # plt.subplot(1, 2, 2)
+    # plt.axis("off")
+    # plt.title("Fake Images")
+    # plt.imshow(np.transpose(real_img_list[-1], (1, 2, 0)))
+    # plt.imsave(os.path.join('results', timestr, 'real_images.png'))
 
     plt.plot(G_loss)
     plt.title('Generator Loss during Training')
