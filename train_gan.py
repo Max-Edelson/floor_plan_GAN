@@ -35,7 +35,7 @@ Z_DIM = 500  # Size of z latent vector (i.e. size of generator input). It is use
 G_HIDDEN = 320  # Size of feature maps in the generator that are propagated through the generator.
 X_DIM = resize_h  # An original image size in MNIST is 28x28. I will change 28x28 to 64x64 with a resize module for the network.
 D_HIDDEN = 320  # Size of feature maps in the discriminator.
-EPOCH_NUM = 75  # The number of times the entire training dataset is trained in the network. Lager epoch number is better, but you should be careful of overfitting.
+EPOCH_NUM = 1  # The number of times the entire training dataset is trained in the network. Lager epoch number is better, but you should be careful of overfitting.
 REAL_LABEL = 1
 FAKE_LABEL = 0
 lr = 2e-4
@@ -122,7 +122,7 @@ def save_experiment(fake_img_list, real_img_list, timestr, best_g_loss, best_d_l
     real_batch = next(iter(dataloader))
 
     # Plot the real images
-    plt.figure(figsize=(15, 15))
+    # plt.figure(figsize=(15, 15))
     # plt.subplot(1, 2, 1)
     # plt.axis("off")
     # plt.title("Real Images")
@@ -137,17 +137,22 @@ def save_experiment(fake_img_list, real_img_list, timestr, best_g_loss, best_d_l
     # plt.imshow(np.transpose(real_img_list[-1], (1, 2, 0)))
     # plt.imsave(os.path.join('results', timestr, 'real_images.png'))
 
+    print(G_loss, D_loss)
+
+    noise = torch.randn(b_size, Z_DIM, 1, 1, device=device)
+
     plt.plot(G_loss)
     plt.title('Generator Loss during Training')
     plt.xlabel('# of Iterations')
     plt.ylabel('Generator Los')
-    plt.imsave(os.path.join('results', timestr, 'generator_loss.png'))
+    plt.savefig(os.path.join('results', timestr, 'generator_loss.png'))
 
+    plt.clf()
     plt.plot(D_loss)
     plt.title('Discriminator Loss during Training')
     plt.xlabel('# of Iterations')
     plt.ylabel('Discriminator Loss')
-    plt.imsave(os.path.join('results', timestr, 'discriminator_loss.png'))
+    plt.savefig(os.path.join('results', timestr, 'discriminator_loss.png'))
 
 
 def train(dataloader):
