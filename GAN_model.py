@@ -126,6 +126,7 @@ class Generator2(nn.Module):
 
         self.l7 = torch.nn.Sequential(
             nn.ConvTranspose2d(16, 3, 4, 2, 1, bias=False),
+            nn.Tanh()
         )
 
 
@@ -150,7 +151,7 @@ class Discriminator(nn.Module):
     def __init__(self):
         super(Discriminator, self).__init__()
 
-        self.model = models.resnet50(pretrained=True)
+        self.model = models.resnet34(pretrained=True)
         self.model.fc = torch.nn.Sequential(
             torch.nn.Linear(in_features=self.model.fc.in_features, out_features=1),
             torch.nn.Sigmoid()

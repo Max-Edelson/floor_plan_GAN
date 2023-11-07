@@ -36,13 +36,15 @@ OUTPUT_PATH = 'output_examples/'
 BATCH_SIZE = 32
 Z_DIM = 128  # Size of z latent vector (i.e. size of generator input). It is used to generate random numbers for the generator.
 X_DIM = resize_h  # An original image size in MNIST is 28x28. I will change 28x28 to 64x64 with a resize module for the network.
-EPOCH_NUM = 75  # The number of times the entire training dataset is trained in the network. Lager epoch number is better, but you should be careful of overfitting.
+EPOCH_NUM = 5  # The number of times the entire training dataset is trained in the network. Lager epoch number is better, but you should be careful of overfitting.
 REAL_LABEL = 1
 FAKE_LABEL = 0
 lr = 2e-4
 seed = 1
 mean = [249.3592, 249.4293, 248.8701]
 stds = [19.1668, 19.5032, 20.3175]
+lambda_gp = 10
+n_critic = 1
 
 CUDA = CUDA and torch.cuda.is_available()
 Tensor = torch.cuda.FloatTensor if CUDA else torch.FloatTensor
@@ -130,21 +132,36 @@ def save_experiment(real_img_list, timestr, best_g_loss, best_d_loss, G_loss, D_
     plt.savefig(os.path.join('results', timestr, 'discriminator_loss.png'))
 
 
+def compute_gradient_penalty(D, real_samples, fake_samples):
+    """Calculates the gradient penalty loss for WGAN GP"""
+    # Random weight term for interpolation between real and fake samples
+    alpha = Tensor(np.random.random((real_samples.size(0), 1, 1, 1)))
+    # Get random interpolation between real and fake samples
+    interpolates = (alpha * real_samples + ((1 - alpha) * fake_samples)).requires_grad_(True)
+    d_interpolates = D(interpolates)
+    fake = Variable(Tensor(real_samples.shape[0]).fill_(1.0), requires_grad=False)
+    # Get gradient w.r.t. interpolates
+    gradients = autograd.grad(
+        outputs=d_interpolates,
+        inputs=interpolates,
+        grad_outputs=fake,
+        create_graph=True,
+        retain_graph=True,
+        only_inputs=True,
+    )[0]
+    gradients = gradients.view(gradients.size(0), -1)
+    gradient_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean()
+    return gradient_penalty
+
+
 def train(dataloader):
     timestr = time.strftime("%Y%m%d-%H%M%S")
 
-    print(device)
-
     # Create the generator
-    # netG = torch.compile(Generator()).to(device)
     netG = Generator().to(device)
 
     # Create the discriminator
-    # netD = torch.compile(Discriminator()).to(device)
     netD = Discriminator().to(device)
-
-    # Initialize BCELoss function
-    criterion = nn.BCELoss()
 
     # Setup Adam optimizers for both G and D
     optimizerD = optim.Adam(netD.parameters(), lr=lr)
@@ -153,7 +170,6 @@ def train(dataloader):
     # Training Loop
 
     # Lists to keep track of progress
-    img_list = []
     G_losses = []
     D_losses = []
     iters = 0
@@ -171,29 +187,9 @@ def train(dataloader):
 
             data = data.to(device)
 
-            # Real and fake labels used for discriminator and generator
-            real_labels = torch.ones(data.shape[0], device=device, requires_grad=False)
-            fake_labels = torch.zeros(data.shape[0], device=device, requires_grad=False)
-
-            # ---------------
-            # Train Generator
-            # ---------------
-
-            optimizerG.zero_grad()
-
             # Sample noise as generator input
             z = torch.randn(data.shape[0], Z_DIM, device=device)
-
-            # Generate a batch of images
             gen_imgs = netG(z)
-            fake_output = netD(gen_imgs)
-
-            # Loss measures generator's ability to fool the discriminator
-            g_loss = criterion(fake_output, real_labels)
-            D_G_z1 = fake_output.mean().item()
-
-            g_loss.backward()
-            optimizerG.step()
 
             # -------------------
             # Train Discriminator
@@ -204,25 +200,49 @@ def train(dataloader):
             # Measure discriminator's ability to classify real samples
             real_output = netD(data)
             D_x = real_output.mean().item()
-            real_loss = criterion(real_output, real_labels)
 
-            # Measure discriminator's ability to classify fake samples
-            fake_loss = criterion(netD(gen_imgs.detach()), fake_labels)
-            d_loss = (real_loss + fake_loss)/2
+            # Fake images
+            fake_output = netD(gen_imgs)
+
+            # Gradient penalty
+            gradient_penalty = compute_gradient_penalty(netD, data.data, gen_imgs.data)
+
+            # Adverserial loss
+            d_loss = -torch.mean(real_output) + torch.mean(fake_output) + lambda_gp*gradient_penalty
+
             d_loss.backward()
             optimizerD.step()
 
-            # Output training stats
-            if i % 50 == 0:
-                print('[%d/%d][%d/%d]\tLoss_D: %.4f\tLoss_G: %.4f\tD(x): %.4f\tD(G(z)): %.4f'
-                      % (epoch, EPOCH_NUM, i, len(dataloader),
-                         d_loss.item(), g_loss.item(), D_x, D_G_z1))
+            optimizerG.zero_grad()
 
-            # Save Losses for plotting later
-            G_losses.append(g_loss.item())
-            D_losses.append(d_loss.item())
-            epoch_D_Loss += d_loss.item()
-            epoch_G_Loss += g_loss.item()
+            if i % n_critic == 0:
+
+                # ---------------
+                # Train Generator
+                # ---------------
+
+                # Generate a batch of images
+                gen_imgs = netG(z)
+                fake_output = netD(gen_imgs)
+
+                # Loss measures generator's ability to fool the discriminator
+                g_loss = -torch.mean(fake_output)
+                D_G_z1 = fake_output.mean().item()
+
+                g_loss.backward()
+                optimizerG.step()
+
+                # Output training stats
+                if i % 50 == 0:
+                    print('[%d/%d][%d/%d]\tLoss_D: %.4f\tLoss_G: %.4f\tD(x): %.4f\tD(G(z)): %.4f'
+                          % (epoch, EPOCH_NUM, i, len(dataloader),
+                             d_loss.item(), g_loss.item(), D_x, D_G_z1))
+
+                # Save Losses for plotting later
+                G_losses.append(g_loss.item())
+                D_losses.append(d_loss.item())
+                epoch_D_Loss += d_loss.item()
+                epoch_G_Loss += g_loss.item()
 
             iters += 1
 
@@ -260,6 +280,7 @@ if __name__ == '__main__':
         transforms.Resize((resize_h, resize_w))
     ])
     data = floorPlanDataset(path=path, transform=transform)
+
     # Dataloader
     dataloader = torch.utils.data.DataLoader(data, batch_size=BATCH_SIZE,
                                              shuffle=True)

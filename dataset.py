@@ -1,14 +1,18 @@
 import os
+import pdb
 import sys
 import numpy as np
 import torch
 from torch.utils.data import Dataset
 import torchvision.transforms as transforms
 from torchvision.io import read_image
+import matplotlib.pyplot as plt
+from torchvision.utils import save_image
 
 DATA_PATH = './data/floorplan/train-00/coco_vis'
 BATCH_SIZE = 128
-IMAGE_CHANNEL = 1 #All images in MNIST are single channel, which means the gray scale image. Therefore, a value of IMAGE_CHANNEL is 1.
+mean = [249.3592, 249.4293, 248.8701]
+stds = [19.1668, 19.5032, 20.3175]
 
 # Data preprocessing
 '''
@@ -32,10 +36,7 @@ class floorPlanDataset(Dataset):
 
         # List of all images in our dataset
         self.img_list = []
-        #for folder in ['test-00', 'train-00', 'train-01']:
 
-            #img_dir = os.listdir(os.path.join('data', 'floorplan', folder, 'coco_vis'))
-            #img_dir = [os.path.join('data', 'floorplan', folder, 'coco_vis', img_path) for img_path in img_dir]
         for img in os.listdir(path):
             img = os.path.join(path, img)
             self.img_list.append(img)
@@ -44,11 +45,13 @@ class floorPlanDataset(Dataset):
         return len(self.img_list)
 
     def __getitem__(self, idx):
-        img = self.img_list[idx]
-        img = read_image(img)
+
+        # Read the ith image in our image list
+        img_loc = self.img_list[idx]
+        img = read_image(img_loc)
 
         if self.transform:
-            img = self.transform(img[:3])
+            img = self.transform(img.float())
 
         return img
 
