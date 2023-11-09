@@ -69,9 +69,9 @@ class Discriminator(nn.Module):
         # Linear layer for classification
         self.adv_layer = nn.Sequential(nn.Linear(128 * 4 * 4, 1), nn.Sigmoid())
 
-    def forward(self, img):
+     def forward(self, img):
         out = self.model(img)
-        out = out.view(out.shape[0], -1)
+        out = self.adaptive_pool(out)  # This will ensure the output is 4x4 spatially
+        out = out.view(out.shape[0], -1)  # Flatten the features
         validity = self.adv_layer(out)
-        validity = validity.view(-1)
         return validity
