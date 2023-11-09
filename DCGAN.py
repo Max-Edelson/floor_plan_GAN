@@ -11,7 +11,7 @@ import torch.utils.data
 import pdb
 
 IMG_SIZE = 256
-LATENT_DIM = 128
+LATENT_DIM = 4096
 
 
 class Generator(nn.Module):
@@ -22,16 +22,14 @@ class Generator(nn.Module):
         self.l1 = nn.Sequential(nn.Linear(LATENT_DIM, 128 * self.init_size ** 2))
 
         self.conv_blocks = nn.Sequential(
-            nn.BatchNorm2d(128),
-            nn.Upsample(scale_factor=2),
-            nn.Conv2d(128, 128, 3, stride=1, padding=1),
+            nn.BatchNorm2d(128, 0.8),
+            nn.ConvTranspose2d(128, 128, kernel_size=3, stride=2, padding=1),
             nn.BatchNorm2d(128, 0.8),
             nn.LeakyReLU(0.2, inplace=True),
-            nn.Upsample(scale_factor=2),
-            nn.Conv2d(128, 64, 3, stride=1, padding=1),
+            nn.ConvTranspose2d(128, 64, kernel_size=3, stride=2, padding=1),
             nn.BatchNorm2d(64, 0.8),
             nn.LeakyReLU(0.2, inplace=True),
-            nn.Conv2d(64, 3, 3, stride=1, padding=1),
+            nn.ConvTranspose2d(64, 3, kernel_size=3, stride=2, padding=1),
             nn.Tanh(),
         )
 

@@ -34,12 +34,13 @@ CUDA = True
 DATA_PATH = './data'
 OUTPUT_PATH = 'output_examples/'
 BATCH_SIZE = 32
-Z_DIM = 128  # Size of z latent vector (i.e. size of generator input). It is used to generate random numbers for the generator.
+Z_DIM = 4096  # Size of z latent vector (i.e. size of generator input). It is used to generate random numbers for the generator.
 X_DIM = resize_h  # An original image size in MNIST is 28x28. I will change 28x28 to 64x64 with a resize module for the network.
 EPOCH_NUM = 75  # The number of times the entire training dataset is trained in the network. Lager epoch number is better, but you should be careful of overfitting.
 REAL_LABEL = 1
 FAKE_LABEL = 0
 lr = 2e-4
+weight_decay=1e-4
 seed = 1
 mean = [249.3592, 249.4293, 248.8701]
 stds = [19.1668, 19.5032, 20.3175]
@@ -147,8 +148,8 @@ def train(dataloader):
     criterion = nn.BCELoss()
 
     # Setup Adam optimizers for both G and D
-    optimizerD = optim.Adam(netD.parameters(), lr=lr)
-    optimizerG = optim.Adam(netG.parameters(), lr=lr)
+    optimizerD = optim.Adam(netD.parameters(), lr=lr, betas=(0.5, 0.99), weight_decay=weight_decay)
+    optimizerG = optim.Adam(netG.parameters(), lr=lr, betas=(0.5, 0.99))
 
     # Training Loop
 
