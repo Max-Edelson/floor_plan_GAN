@@ -9,27 +9,31 @@ from torchvision import models
 import torch.optim as optim
 import torch.utils.data
 import pdb
+from train_gan import LATENT_DIM
 
 IMG_SIZE = 256
-LATENT_DIM = 4096
+#LATENT_DIM = 4096
 
 
 class Generator(nn.Module):
     def __init__(self):
         super(Generator, self).__init__()
 
-        self.init_size = IMG_SIZE // 4
+        self.init_size = IMG_SIZE // 32
         self.l1 = nn.Sequential(nn.Linear(LATENT_DIM, 128 * self.init_size ** 2))
 
         self.conv_blocks = nn.Sequential(
-            nn.BatchNorm2d(128, 0.8),
-            nn.ConvTranspose2d(128, 128, kernel_size=3, stride=2, padding=1),
-            nn.BatchNorm2d(128, 0.8),
+            nn.BatchNorm2d(128),
+            nn.ConvTranspose2d(128, 128, kernel_size=4, stride=2, padding=1),
+            nn.BatchNorm2d(128),
             nn.LeakyReLU(0.2, inplace=True),
-            nn.ConvTranspose2d(128, 64, kernel_size=3, stride=2, padding=1),
-            nn.BatchNorm2d(64, 0.8),
+            nn.ConvTranspose2d(128, 64, kernel_size=4, stride=2, padding=1),
+            nn.BatchNorm2d(64),
             nn.LeakyReLU(0.2, inplace=True),
-            nn.ConvTranspose2d(64, 3, kernel_size=3, stride=2, padding=1),
+            nn.ConvTranspose2d(64, 32, kernel_size=4, stride=2, padding=1),
+            nn.BatchNorm2d(32),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.ConvTranspose2d(32, 3, kernel_size=4, stride=2, padding=1),
             nn.Tanh(),
         )
 
