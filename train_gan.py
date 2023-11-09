@@ -80,12 +80,15 @@ def load_discriminator(path):
     return netD
 
 
-def save_experiment(real_img_list, timestr, best_g_loss, best_d_loss, G_loss, D_loss, D, G):
-    os.mkdir(os.path.join('results', timestr))
+def save_experiment(real_img_list, timestr, best_g_loss, best_d_loss, G_loss, D_loss, D, G, epoch=None):
+    path = os.path.join('results', timestr)
+    if epoch is not None:
+        path = os.path.join(path, str(epoch))
+    os.mkdir(path)
 
     # Save discriminator and generator models
-    save_model(D, os.path.join('results', timestr, 'Discriminator.pth'))
-    save_model(G, os.path.join('results', timestr, 'Generator.pth'))
+    save_model(D, os.path.join(path, 'Discriminator.pth'))
+    save_model(G, os.path.join(path, 'Generator.pth'))
 
     trial_dict = {
         'Model name': [timestr],
@@ -98,9 +101,9 @@ def save_experiment(real_img_list, timestr, best_g_loss, best_d_loss, G_loss, D_
 
     # Save statistics to a csv file
     trial_dict = pd.DataFrame(trial_dict)
-    trial_dict.to_csv(os.path.join('results', timestr, 'metrics.csv'), index=False, header=True)
+    trial_dict.to_csv(os.path.join(path, 'metrics.csv'), index=False, header=True)
 
-    save_image(real_img_list.data, os.path.join('results', timestr, 'real_examples.png'),
+    save_image(real_img_list.data, os.path.join(path, 'real_examples.png'),
                nrow=8, normalize=True)
 
     # Generate some examples
@@ -114,21 +117,21 @@ def save_experiment(real_img_list, timestr, best_g_loss, best_d_loss, G_loss, D_
 
 
     output = torch.round(output)
-    save_image(output.data, os.path.join('results', timestr, 'generated_examples.png'),
+    save_image(output.data, os.path.join(path, 'generated_examples.png'),
                nrow=8, value_range=(0,255), normalize=True)
 
     plt.plot(G_loss)
     plt.title('Generator Loss during Training')
     plt.xlabel('# of Iterations')
     plt.ylabel('Generator Los')
-    plt.savefig(os.path.join('results', timestr, 'generator_loss.png'))
+    plt.savefig(os.path.join(path, 'generator_loss.png'))
 
     plt.clf()
     plt.plot(D_loss)
     plt.title('Discriminator Loss during Training')
     plt.xlabel('# of Iterations')
     plt.ylabel('Discriminator Loss')
-    plt.savefig(os.path.join('results', timestr, 'discriminator_loss.png'))
+    plt.savefig(os.path.join(path, 'discriminator_loss.png'))
 
 
 def train(dataloader):
@@ -236,6 +239,8 @@ def train(dataloader):
         if best_G_Loss is None or epoch_G_Loss < best_G_Loss:
             best_G_Loss = epoch_G_Loss
             best_g_model = deepcopy(netG)
+        save_experiment(data, timestr, best_G_Loss, best_D_Loss, G_losses,
+                    D_losses, best_d_model, best_g_model, epoch)
 
     total_training_time = time.process_time() - training_start
     print(f'Total training time (s): %.2f' % total_training_time)
