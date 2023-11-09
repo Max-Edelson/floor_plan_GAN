@@ -9,10 +9,9 @@ from torchvision import models
 import torch.optim as optim
 import torch.utils.data
 import pdb
-from train_gan import LATENT_DIM
 
 IMG_SIZE = 256
-#LATENT_DIM = 4096
+LATENT_DIM = 4096
 
 
 class Generator(nn.Module):
@@ -63,8 +62,13 @@ class Discriminator(nn.Module):
         )
 
         # The height and width of downsampled image
-        ds_size = IMG_SIZE // 2 ** 4
-        self.adv_layer = nn.Sequential(nn.Linear(128 * ds_size ** 2, 1), nn.Sigmoid())
+        #ds_size = IMG_SIZE // 2 ** 4
+        #self.adv_layer = nn.Sequential(nn.Linear(128 * ds_size ** 2, 1), nn.Sigmoid())
+        # Adaptive pooling layer to get a fixed size output (e.g., 4x4)
+        self.adaptive_pool = nn.AdaptiveAvgPool2d((4, 4))
+
+        # Linear layer for classification
+        self.adv_layer = nn.Sequential(nn.Linear(128 * 4 * 4, 1), nn.Sigmoid())
 
     def forward(self, img):
         out = self.model(img)
