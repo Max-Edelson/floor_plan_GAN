@@ -40,6 +40,7 @@ EPOCH_NUM = 5  # The number of times the entire training dataset is trained in t
 REAL_LABEL = 1
 FAKE_LABEL = 0
 lr = 2e-4
+lambda_l1 = 1e-4
 seed = 1
 mean = [249.3592, 249.4293, 248.8701]
 stds = [19.1668, 19.5032, 20.3175]
@@ -80,6 +81,10 @@ def load_discriminator(path):
     netD.eval()
     return netD
 
+def l1_regularization(model, lambda_l1):
+    l1_norm = sum(p.abs().sum() for p in model.parameters())
+    return lambda_l1 * l1_norm
+
 def generate_images(G, epoch, timestr):
 
     if not os.path.exists(os.path.join('results', timestr)):
@@ -90,9 +95,9 @@ def generate_images(G, epoch, timestr):
     output = G(noise).cpu()
 
     for i in range(output.shape[0]):
-        output[i][0, :, :] = output[i][0, :, :] * 127.5 + 127.5
-        output[i][1, :, :] = output[i][1, :, :] * 127.5 + 127.5
-        output[i][2, :, :] = output[i][2, :, :] * 127.5 + 127.5
+        output[i][0, :, :] = output[i][0, :, :] * stds[0] + mean[0]
+        output[i][1, :, :] = output[i][1, :, :] * stds[1] + mean[1]
+        output[i][2, :, :] = output[i][2, :, :] * stds[2] + mean[2]
 
     output = torch.round(output)
     save_image(output.data, os.path.join('results', timestr, 'generated_examples_' + str(epoch) +  '.png'),
@@ -167,8 +172,8 @@ def train(dataloader):
     netD = Discriminator().to(device)
 
     # Setup Adam optimizers for both G and D
-    optimizerD = optim.Adam(netD.parameters(), lr=lr)
-    optimizerG = optim.Adam(netG.parameters(), lr=lr)
+    optimizerD = optim.Adam(netD.parameters(), lr=lr, betas=(0.5, 0.99))
+    optimizerG = optim.Adam(netG.parameters(), lr=lr, betas=(0.5, 0.99))
 
     # Training Loop
 
@@ -232,7 +237,11 @@ def train(dataloader):
                 g_loss = -torch.mean(fake_output)
                 D_G_z1 = fake_output.mean().item()
 
-                g_loss.backward()
+                l1_g_loss = l1_regularization(netG, lambda_l1)
+                total_g_loss = g_loss + l1_g_loss
+                total_g_loss.backward()
+
+                #g_loss.backward()
                 optimizerG.step()
 
                 # Output training stats
