@@ -32,7 +32,7 @@ class Generator(nn.Module):
             nn.ConvTranspose2d(64, 32, kernel_size=4, stride=2, padding=1),
             nn.BatchNorm2d(32),
             nn.LeakyReLU(0.2, inplace=True),
-            nn.ConvTranspose2d(32, 3, kernel_size=4, stride=2, padding=1),
+            nn.ConvTranspose2d(32, 3, kernel_size=6, stride=4, padding=1),
             nn.Tanh(),
         )
 
@@ -70,7 +70,9 @@ class Discriminator(nn.Module):
         self.adv_layer = nn.Sequential(nn.Linear(128 * 4 * 4, 1), nn.Sigmoid())
 
     def forward(self, img):
+
         out = self.model(img)
+        out = self.adaptive_pool(out)
         out = out.view(out.shape[0], -1)
         validity = self.adv_layer(out)
         validity = validity.view(-1)

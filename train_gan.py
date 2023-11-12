@@ -8,6 +8,7 @@ import torch.nn as nn
 import torch.nn.parallel
 import torch.backends.cudnn as cudnn
 import torch.optim as optim
+from torchsummary import summary
 import torch.utils.data
 import torchvision.transforms as transforms
 import torchvision.datasets as dset
@@ -80,11 +81,12 @@ def load_discriminator(path):
     return netD
 
 
-def save_experiment(real_img_list, timestr, best_g_loss, best_d_loss, G_loss, D_loss, D, G, epoch=None):
+def save_experiment(real_img_list, timestr, best_g_loss, best_d_loss, G_loss, D_loss, D, G):
+
     path = os.path.join('results', timestr)
-    if epoch is not None:
-        path = os.path.join(path, str(epoch))
-    os.mkdir(path)
+
+    if not os.path.exists(path):
+        os.mkdir(path)
 
     # Save discriminator and generator models
     save_model(D, os.path.join(path, 'Discriminator.pth'))
@@ -115,8 +117,8 @@ def save_experiment(real_img_list, timestr, best_g_loss, best_d_loss, G_loss, D_
         output[i][1, :, :] = output[i][1, :, :] * stds[1] + mean[1]
         output[i][2, :, :] = output[i][2, :, :] * stds[2] + mean[2]
 
-
     output = torch.round(output)
+    output[output > 255] = 255
     save_image(output.data, os.path.join(path, 'generated_examples.png'),
                nrow=8, value_range=(0,255), normalize=True)
 
@@ -240,7 +242,7 @@ def train(dataloader):
             best_G_Loss = epoch_G_Loss
             best_g_model = deepcopy(netG)
         save_experiment(data, timestr, best_G_Loss, best_D_Loss, G_losses,
-                    D_losses, best_d_model, best_g_model, epoch)
+                    D_losses, best_d_model, best_g_model)
 
     total_training_time = time.process_time() - training_start
     print(f'Total training time (s): %.2f' % total_training_time)
