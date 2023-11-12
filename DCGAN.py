@@ -42,7 +42,6 @@ class Generator(nn.Module):
         img = self.conv_blocks(out)
         return img
 
-
 class Discriminator(nn.Module):
     def __init__(self):
         super(Discriminator, self).__init__()
