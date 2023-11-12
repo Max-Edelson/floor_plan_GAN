@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 from dataset import floorPlanDataset
 import time
 # from GAN_model import Generator, Discriminator, Generator2
-from DCGAN import Generator, Discriminator
+from new_gan import Generator, Discriminator
 from tqdm import tqdm as progress_bar
 import pandas as pd
 from copy import deepcopy
@@ -34,13 +34,14 @@ CUDA = True
 DATA_PATH = './data'
 OUTPUT_PATH = 'output_examples/'
 BATCH_SIZE = 32
-Z_DIM = 4096  # Size of z latent vector (i.e. size of generator input). It is used to generate random numbers for the generator.
+Z_DIM = 100  # Size of z latent vector (i.e. size of generator input). It is used to generate random numbers for the generator.
 X_DIM = resize_h  # An original image size in MNIST is 28x28. I will change 28x28 to 64x64 with a resize module for the network.
 EPOCH_NUM = 75  # The number of times the entire training dataset is trained in the network. Lager epoch number is better, but you should be careful of overfitting.
 REAL_LABEL = 1
 FAKE_LABEL = 0
 lr = 2e-4
 weight_decay=1e-4
+lambda_l1 = 1e-4
 seed = 1
 mean = [249.3592, 249.4293, 248.8701]
 stds = [19.1668, 19.5032, 20.3175]
@@ -79,12 +80,15 @@ def load_discriminator(path):
     netD.eval()
     return netD
 
+def l1_regularization(model, lambda_l1):
+    l1_norm = sum(p.abs().sum() for p in model.parameters())
+    return lambda_l1 * l1_norm
 
 def save_experiment(real_img_list, timestr, best_g_loss, best_d_loss, G_loss, D_loss, D, G, epoch=None):
     path = os.path.join('results', timestr)
     if epoch is not None:
         path = os.path.join(path, str(epoch))
-    os.mkdir(path)
+    os.makedirs(path)
 
     # Save discriminator and generator models
     save_model(D, os.path.join(path, 'Discriminator.pth'))
@@ -176,7 +180,7 @@ def train(dataloader):
             data = data.to(device)
 
             # Real and fake labels used for discriminator and generator
-            real_labels = torch.ones(data.shape[0], device=device, requires_grad=False)
+            real_labels = torch.ones(data.shape[0], device=device, requires_grad=False).reshape(-1,1)
             fake_labels = torch.zeros(data.shape[0], device=device, requires_grad=False)
 
             # ---------------
@@ -193,10 +197,14 @@ def train(dataloader):
             fake_output = netD(gen_imgs)
 
             # Loss measures generator's ability to fool the discriminator
+            #print(f'fake_output: {fake_output.shape}, real_labels: {real_labels.shape}')
             g_loss = criterion(fake_output, real_labels)
             D_G_z1 = fake_output.mean().item()
 
-            g_loss.backward()
+            l1_loss = l1_regularization(netG, lambda_l1)
+            total_g_loss = g_loss + l1_loss
+
+            total_g_loss.backward()
             optimizerG.step()
 
             # -------------------
