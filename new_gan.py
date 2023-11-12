@@ -16,17 +16,29 @@ LATENT_DIM = 100
 class Generator(nn.Module):
     def __init__(self):
         super(Generator, self).__init__()
-        self.init_size = IMG_SIZE // 32
+        self.init_size = IMG_SIZE // 64
 
         self.l0 = nn.Sequential(
-            nn.Linear(LATENT_DIM, 128 * self.init_size ** 2),
+            nn.Linear(LATENT_DIM, 512 * self.init_size ** 2),
             nn.PReLU()
         )
-
-        self.tconv1 = nn.Sequential(
-            nn.InstanceNorm2d(128),
-            nn.ConvTranspose2d(128, 128, kernel_size=3, stride=2, padding=1, output_padding=1, groups=4),
+        self.tconv0 = nn.Sequential(
+            nn.InstanceNorm2d(512),
+            nn.ConvTranspose2d(512, 256, kernel_size=3, stride=2, padding=1, output_padding=1, groups=8)
         )
+        self.se0 = nn.Sequential(
+            nn.AdaptiveAvgPool2d(1),
+            nn.Conv2d(256, 64, kernel_size=1, groups=8),
+            nn.Hardswish(True),
+            nn.Conv2d(64, 256, kernel_size=1, groups=8),
+            nn.Sigmoid()
+        )
+        self.act0 = nn.Sequential(
+            nn.PReLU(),
+            nn.InstanceNorm2d(256)
+        )
+
+        self.tconv1 = nn.ConvTranspose2d(256, 128, kernel_size=3, stride=2, padding=1, output_padding=1, groups=4)
         self.se1 = nn.Sequential(
             nn.AdaptiveAvgPool2d(1),
             nn.Conv2d(128, 32, kernel_size=1, groups=4),
@@ -73,7 +85,7 @@ class Generator(nn.Module):
             nn.PReLU(),
             nn.InstanceNorm2d(32)
         )
-        
+
         self.hourglass5 = nn.Sequential(
             nn.Conv2d(32, 8, kernel_size=3, groups=4, padding=1),
             nn.PReLU(),
@@ -123,7 +135,7 @@ class Generator(nn.Module):
             nn.PReLU(),
             nn.InstanceNorm2d(16)
         )
-        
+
         self.final = nn.Sequential(
             nn.Conv2d(16, 3, kernel_size=3, padding=1),
             nn.Tanh()
@@ -131,7 +143,9 @@ class Generator(nn.Module):
 
     def forward(self, z):
         out = self.l0(z)
-        out = out.view(out.shape[0], 128, self.init_size, self.init_size)
+        out = out.view(out.shape[0], 512, self.init_size, self.init_size)
+        out = self.tconv0(out)
+        out = self.act0(out * self.se0(out).expand_as(out))
         out = self.tconv1(out)
         out = self.act1(out * self.se1(out).expand_as(out)) # 16 x 16
         out = self.tconv2(out)
@@ -180,7 +194,6 @@ class Discriminator(nn.Module):
         out = self.adaptive_pool(out)  # This will ensure the output is 4x4 spatially
         out = out.view(out.shape[0], -1)  # Flatten the features
         validity = self.adv_layer(out)
-        validity = validity.view(-1)
         return validity
 
 #!pip install torch-summary
