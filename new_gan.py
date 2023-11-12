@@ -180,6 +180,7 @@ class Discriminator(nn.Module):
         out = self.adaptive_pool(out)  # This will ensure the output is 4x4 spatially
         out = out.view(out.shape[0], -1)  # Flatten the features
         validity = self.adv_layer(out)
+        validity = validity.view(-1)
         return validity
 
 #!pip install torch-summary

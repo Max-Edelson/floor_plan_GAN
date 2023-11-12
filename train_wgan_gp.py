@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 from dataset import floorPlanDataset
 import time
 # from GAN_model import Generator, Discriminator, Generator2
-from DCGAN import Generator, Discriminator
+from new_gan import Generator, Discriminator
 from tqdm import tqdm as progress_bar
 import pandas as pd
 from copy import deepcopy
@@ -34,7 +34,7 @@ CUDA = True
 DATA_PATH = './data'
 OUTPUT_PATH = 'output_examples/'
 BATCH_SIZE = 32
-Z_DIM = 128  # Size of z latent vector (i.e. size of generator input). It is used to generate random numbers for the generator.
+Z_DIM = 100  # Size of z latent vector (i.e. size of generator input). It is used to generate random numbers for the generator.
 X_DIM = 28  # An original image size in MNIST is 28x28. I will change 28x28 to 64x64 with a resize module for the network.
 EPOCH_NUM = 5  # The number of times the entire training dataset is trained in the network. Lager epoch number is better, but you should be careful of overfitting.
 REAL_LABEL = 1
@@ -80,9 +80,26 @@ def load_discriminator(path):
     netD.eval()
     return netD
 
+def generate_images(G, epoch, timestr):
+
+    if not os.path.exists(os.path.join('results', timestr)):
+        os.mkdir(os.path.join('results', timestr))
+
+    # Generate some examples
+    noise = torch.randn(BATCH_SIZE, Z_DIM, device=device)
+    output = G(noise).cpu()
+
+    for i in range(output.shape[0]):
+        output[i][0, :, :] = output[i][0, :, :] * 127.5 + 127.5
+        output[i][1, :, :] = output[i][1, :, :] * 127.5 + 127.5
+        output[i][2, :, :] = output[i][2, :, :] * 127.5 + 127.5
+
+    output = torch.round(output)
+    save_image(output.data, os.path.join('results', timestr, 'generated_examples_' + str(epoch) +  '.png'),
+               nrow=8, value_range=(0, 255), normalize=True)
+
 
 def save_experiment(real_img_list, timestr, best_g_loss, best_d_loss, G_loss, D_loss, D, G):
-    os.mkdir(os.path.join('results', timestr))
 
     # Save discriminator and generator models
     save_model(D, os.path.join('results', timestr, 'Discriminator.pth'))
@@ -101,22 +118,8 @@ def save_experiment(real_img_list, timestr, best_g_loss, best_d_loss, G_loss, D_
     trial_dict = pd.DataFrame(trial_dict)
     trial_dict.to_csv(os.path.join('results', timestr, 'metrics.csv'), index=False, header=True)
 
-    save_image(real_img_list.data, os.path.join('results', timestr, 'real_examples.png'),
-               nrow=8, normalize=True)
-
-    # Generate some examples
-    noise = torch.randn(BATCH_SIZE, Z_DIM, device=device)
-    output = G(noise).cpu()
-
-    for i in range(output.shape[0]):
-        output[i][0, :, :] = output[i][0,:,:] * 127.5 + 127.5
-        output[i][1, :, :] = output[i][1, :, :] * 127.5 + 127.5
-        output[i][2, :, :] = output[i][2, :, :] * 127.5 + 127.5
-
-
-    output = torch.round(output)
-    save_image(output.data, os.path.join('results', timestr, 'generated_examples.png'),
-               nrow=8, value_range=(0,255), normalize=True)
+    # save_image(real_img_list.data, os.path.join('results', timestr, 'real_examples.png'),
+    #            nrow=8, normalize=True)
 
     plt.plot(G_loss)
     plt.title('Generator Loss during Training')
@@ -255,6 +258,8 @@ def train(dataloader):
         if best_G_Loss is None or epoch_G_Loss < best_G_Loss:
             best_G_Loss = epoch_G_Loss
             best_g_model = deepcopy(netG)
+
+        generate_images(best_g_model, epoch, timestr)
 
     total_training_time = time.process_time() - training_start
     print(f'Total training time (s): %.2f' % total_training_time)

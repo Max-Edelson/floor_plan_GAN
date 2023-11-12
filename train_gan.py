@@ -17,7 +17,8 @@ import matplotlib.pyplot as plt
 from dataset import floorPlanDataset
 import time
 # from GAN_model import Generator, Discriminator, Generator2
-from DCGAN import Generator, Discriminator
+# from DCGAN import Generator, Discriminator
+from new_gan import Generator, Discriminator
 from tqdm import tqdm as progress_bar
 import pandas as pd
 from copy import deepcopy
@@ -35,7 +36,7 @@ CUDA = True
 DATA_PATH = './data'
 OUTPUT_PATH = 'output_examples/'
 BATCH_SIZE = 32
-Z_DIM = 4096  # Size of z latent vector (i.e. size of generator input). It is used to generate random numbers for the generator.
+Z_DIM = 100  # Size of z latent vector (i.e. size of generator input). It is used to generate random numbers for the generator.
 X_DIM = resize_h  # An original image size in MNIST is 28x28. I will change 28x28 to 64x64 with a resize module for the network.
 EPOCH_NUM = 75  # The number of times the entire training dataset is trained in the network. Lager epoch number is better, but you should be careful of overfitting.
 REAL_LABEL = 1
