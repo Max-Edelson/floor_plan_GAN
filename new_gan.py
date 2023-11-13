@@ -137,7 +137,7 @@ class Generator(nn.Module):
         )
 
         self.final = nn.Sequential(
-            nn.Conv2d(16, 3, kernel_size=3, padding=1),
+            nn.Conv2d(16, 1, kernel_size=3, padding=1),
             nn.Tanh()
         )
 
@@ -174,7 +174,7 @@ class Discriminator(nn.Module):
             return block
 
         self.model = nn.Sequential(
-            *discriminator_block(3, 16, bn=False),
+            *discriminator_block(1, 16, bn=False),
             *discriminator_block(16, 32),
             *discriminator_block(32, 64),
             *discriminator_block(64, 128),
@@ -194,6 +194,7 @@ class Discriminator(nn.Module):
         out = self.adaptive_pool(out)  # This will ensure the output is 4x4 spatially
         out = out.view(out.shape[0], -1)  # Flatten the features
         validity = self.adv_layer(out)
+        validity = validity.view(-1)
         return validity
 
 #!pip install torch-summary

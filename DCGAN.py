@@ -11,7 +11,7 @@ import torch.utils.data
 import pdb
 
 IMG_SIZE = 256
-LATENT_DIM = 4096
+LATENT_DIM = 100
 
 
 class Generator(nn.Module):
@@ -32,7 +32,7 @@ class Generator(nn.Module):
             nn.ConvTranspose2d(64, 32, kernel_size=4, stride=2, padding=1),
             nn.BatchNorm2d(32),
             nn.LeakyReLU(0.2, inplace=True),
-            nn.ConvTranspose2d(32, 3, kernel_size=6, stride=4, padding=1),
+            nn.ConvTranspose2d(32, 1, kernel_size=6, stride=4, padding=1),
             nn.Tanh(),
         )
 
@@ -53,7 +53,7 @@ class Discriminator(nn.Module):
             return block
 
         self.model = nn.Sequential(
-            *discriminator_block(3, 16, bn=False),
+            *discriminator_block(1, 16, bn=False),
             *discriminator_block(16, 32),
             *discriminator_block(32, 64),
             *discriminator_block(64, 128),

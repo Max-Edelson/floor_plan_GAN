@@ -10,13 +10,12 @@ import torch.backends.cudnn as cudnn
 import torch.optim as optim
 import torch.utils.data
 import torchvision.transforms as transforms
-import torchvision.datasets as dset
-import torchvision.utils as vutils
 import matplotlib.pyplot as plt
 from dataset import floorPlanDataset
 import time
 # from GAN_model import Generator, Discriminator, Generator2
-from new_gan import Generator, Discriminator
+# from new_gan import Generator, Discriminator
+from DCGAN import Generator, Discriminator
 from tqdm import tqdm as progress_bar
 import pandas as pd
 from copy import deepcopy
@@ -54,6 +53,11 @@ if CUDA:
     torch.cuda.manual_seed(seed)
 device = torch.device("cuda:0" if CUDA else "cpu")
 
+class ThresholdTransform(object):
+
+  def __call__(self, x):
+    return (x > 0).to(x.dtype)  # do not change the data type
+
 
 def weights_init(m):
     classname = m.__class__.__name__
@@ -90,14 +94,8 @@ def generate_images(G, epoch, timestr):
     noise = torch.randn(BATCH_SIZE, Z_DIM, device=device)
     output = G(noise).cpu()
 
-    for i in range(output.shape[0]):
-        output[i][0, :, :] = output[i][0, :, :] * stds[0] + mean[0]
-        output[i][1, :, :] = output[i][1, :, :] * stds[1] + mean[1]
-        output[i][2, :, :] = output[i][2, :, :] * stds[2] + mean[2]
-
-    output = torch.round(output)
     save_image(output.data, os.path.join('results', timestr, 'generated_examples_' + str(epoch) +  '.png'),
-               nrow=8, value_range=(0, 255), normalize=True)
+               nrow=8, normalize=True)
 
 
 def save_experiment(real_img_list, timestr, best_g_loss, best_d_loss, G_loss, D_loss, D, G):
@@ -273,16 +271,11 @@ def train(dataloader):
 
 
 if __name__ == '__main__':
-    '''data = dset.MNIST(root=DATA_PATH, download=True,
-                     transform=transforms.Compose([
-                     transforms.Resize(X_DIM),
-                     transforms.ToTensor(),
-                     transforms.Normalize((0.5,), (0.5,))
-                     ]))'''
-    new_folder_name = 'resized_500x500'
+    new_folder_name = 'binary_images'
     path = os.path.join('data', 'floorplan', new_folder_name)
     transform = transforms.Compose([
-        transforms.Normalize([mean[0], mean[1], mean[2]], [stds[0], stds[1], stds[2]]),
+        ThresholdTransform(),
+        transforms.Normalize([0.5], [0.5]),
         transforms.Resize((resize_h, resize_w))
     ])
     data = floorPlanDataset(path=path, transform=transform)

@@ -18,18 +18,17 @@ import torch.autograd as autograd
 import torch
 import time
 
-os.makedirs("images", exist_ok=True)
-new_folder_name = 'resized_500x500'
+new_folder_name = 'binary_images'
 parser = argparse.ArgumentParser()
-parser.add_argument("--n_epochs", type=int, default=200, help="number of epochs of training")
+parser.add_argument("--n_epochs", type=int, default=1, help="number of epochs of training")
 parser.add_argument("--batch_size", type=int, default=64, help="size of the batches")
 parser.add_argument("--lr", type=float, default=0.0002, help="adam: learning rate")
 parser.add_argument("--b1", type=float, default=0.5, help="adam: decay of first order momentum of gradient")
 parser.add_argument("--b2", type=float, default=0.999, help="adam: decay of first order momentum of gradient")
 parser.add_argument("--n_cpu", type=int, default=8, help="number of cpu threads to use during batch generation")
 parser.add_argument("--latent_dim", type=int, default=100, help="dimensionality of the latent space")
-parser.add_argument("--img_size", type=int, default=128, help="size of each image dimension")
-parser.add_argument("--channels", type=int, default=3, help="number of image channels")
+parser.add_argument("--img_size", type=int, default=256, help="size of each image dimension")
+parser.add_argument("--channels", type=int, default=1, help="number of image channels")
 parser.add_argument("--n_critic", type=int, default=5, help="number of training steps for discriminator per iter")
 parser.add_argument("--clip_value", type=float, default=0.01, help="lower and upper clip value for disc. weights")
 parser.add_argument("--sample_interval", type=int, default=400, help="interval betwen image samples")
@@ -95,13 +94,19 @@ discriminator = Discriminator()
 timestr = time.strftime("%Y%m%d-%H%M%S")
 os.mkdir(os.path.join('results', timestr))
 
+class ThresholdTransform(object):
+
+  def __call__(self, x):
+    return (x > 0).to(x.dtype)  # do not change the data type
+
 if cuda:
     generator.cuda()
     discriminator.cuda()
 
 path = os.path.join('data', 'floorplan', new_folder_name)
 transform = transforms.Compose([
-    transforms.Normalize([127.5, 127.5, 127.5], [127.5, 127.5, 127.5]),
+    ThresholdTransform(),
+    transforms.Normalize([0.5], [0.5]),
     transforms.Resize(opt.img_size)
 ])
 data = floorPlanDataset(path=path, transform=transform)
@@ -191,12 +196,8 @@ for epoch in range(opt.n_epochs):
 
             if batches_done % opt.sample_interval == 0:
                 output = fake_imgs.cpu()
-                for i in range(output.shape[0]):
-                    output[i][0, :, :] = output[i][0, :, :] * 127.5 + 127.5
-                    output[i][1, :, :] = output[i][1, :, :] * 127.5 + 127.5
-                    output[i][2, :, :] = output[i][2, :, :] * 127.5 + 127.5
 
                 img_name = os.path.join('results', timestr, str(batches_done) + '.png')
-                save_image(output.data, img_name, nrow=8, value_range=(0,255), normalize=True)
+                save_image(output.data, img_name, nrow=8, normalize=True)
 
         batches_done += 1
