@@ -118,6 +118,7 @@ dataloader = torch.utils.data.DataLoader(data, batch_size=opt.batch_size,
 # Optimizers
 optimizer_G = torch.optim.Adam(generator.parameters(), lr=opt.lr, betas=(opt.b1, opt.b2))
 optimizer_D = torch.optim.Adam(discriminator.parameters(), lr=opt.lr, betas=(opt.b1, opt.b2))
+schedulerG =  optim.lr_scheduler.OneCycleLR(optimizerG, max_lr=0.1, steps_per_epoch=len(dataloader), epochs=opt.n_epochs)
 
 Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 
@@ -188,6 +189,7 @@ for epoch in range(opt.n_epochs):
 
             g_loss.backward()
             optimizer_G.step()
+            schedulerG.step()
 
             print(
                 "[Epoch %d/%d] [Batch %d/%d] [D loss: %f] [G loss: %f]"
