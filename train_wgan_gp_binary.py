@@ -168,6 +168,7 @@ def train(dataloader):
     # Setup Adam optimizers for both G and D
     optimizerD = optim.Adam(netD.parameters(), lr=lr)
     optimizerG = optim.Adam(netG.parameters(), lr=lr)
+    schedulerG = optim.lr_scheduler.OneCycleLR(optimizerG, max_lr=0.1, steps_per_epoch=len(dataloader), epochs=EPOCH_NUM)
 
     # Training Loop
 
@@ -233,6 +234,7 @@ def train(dataloader):
 
                 g_loss.backward()
                 optimizerG.step()
+                schedulerG.step()
 
                 # Output training stats
                 if i % 50 == 0:

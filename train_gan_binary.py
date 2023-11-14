@@ -161,6 +161,7 @@ def train(dataloader):
     # Setup Adam optimizers for both G and D
     optimizerD = optim.Adam(netD.parameters(), lr=lr, betas=(0.5, 0.99), weight_decay=weight_decay)
     optimizerG = optim.Adam(netG.parameters(), lr=lr, betas=(0.5, 0.99))
+    schedulerG = optim.lr_scheduler.OneCycleLR(optimizerG, max_lr=0.1, steps_per_epoch=len(dataloader), epochs=EPOCH_NUM)
 
     # Training Loop
 
@@ -206,6 +207,7 @@ def train(dataloader):
 
             g_loss.backward()
             optimizerG.step()
+            schedulerG.step()
 
             # -------------------
             # Train Discriminator
