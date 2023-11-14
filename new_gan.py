@@ -22,144 +22,103 @@ class Generator(nn.Module):
             nn.Linear(LATENT_DIM, 512 * self.init_size ** 2),
             nn.PReLU()
         )
-        self.tconv0 = nn.Sequential(
-            nn.InstanceNorm2d(512),
-            nn.ConvTranspose2d(512, 256, kernel_size=3, stride=2, padding=1, output_padding=1, groups=8)
-        )
-        self.se0 = nn.Sequential(
-            nn.AdaptiveAvgPool2d(1),
-            nn.Conv2d(256, 64, kernel_size=1, groups=8),
-            nn.Hardswish(True),
-            nn.Conv2d(64, 256, kernel_size=1, groups=8),
-            nn.Sigmoid()
-        )
-        self.act0 = nn.Sequential(
-            nn.PReLU(),
-            nn.InstanceNorm2d(256)
-        )
 
-        self.tconv1 = nn.ConvTranspose2d(256, 128, kernel_size=3, stride=2, padding=1, output_padding=1, groups=4)
-        self.se1 = nn.Sequential(
-            nn.AdaptiveAvgPool2d(1),
-            nn.Conv2d(128, 32, kernel_size=1, groups=4),
-            nn.Hardswish(True),
-            nn.Conv2d(32, 128, kernel_size=1, groups=4),
-            nn.Sigmoid()
+        self.tconv1 = nn.Sequential(
+            nn.BatchNorm2d(512),
+            nn.ConvTranspose2d(512, 256, kernel_size=4, stride=2, padding=1, groups=4)
         )
         self.act1 = nn.Sequential(
             nn.PReLU(),
-            nn.InstanceNorm2d(128)
+            nn.BatchNorm2d(256)
         )
 
-        self.tconv2 = nn.ConvTranspose2d(128, 64, kernel_size=3, stride=2, padding=1, output_padding=1, groups=4)
-        self.se2 = nn.Sequential(
-            nn.AdaptiveAvgPool2d(1),
-            nn.Conv2d(64, 16, kernel_size=1, groups=4),
-            nn.Hardswish(True),
-            nn.Conv2d(16, 64, kernel_size=1, groups=4),
-            nn.Sigmoid()
-        )
+        self.tconv2 = nn.ConvTranspose2d(256, 128, kernel_size=4, stride=2, padding=1, groups=4)
         self.act2 = nn.Sequential(
             nn.PReLU(),
-            nn.InstanceNorm2d(64)
+            nn.BatchNorm2d(128)
         )
 
-        self.hourglass3 = nn.Sequential(
+        self.tconv3 = nn.ConvTranspose2d(128, 64, kernel_size=4, stride=2, padding=1, groups=4)
+        self.act3 = nn.Sequential(
+            nn.PReLU(),
+            nn.BatchNorm2d(64)
+        )
+
+        self.hourglass4 = nn.Sequential(
             nn.Conv2d(64, 16, kernel_size=3, groups=4, padding=1),
             nn.PReLU(),
-            nn.InstanceNorm2d(16),
+            nn.BatchNorm2d(16),
             nn.Conv2d(16, 64, kernel_size=3, groups=4, padding=1),
             nn.PReLU(),
-            nn.InstanceNorm2d(64)
+            nn.BatchNorm2d(64)
         )
 
-        self.tconv4 = nn.ConvTranspose2d(64, 32, kernel_size=3, stride=2, padding=1, output_padding=1, groups=4)
-        self.se4 = nn.Sequential(
-            nn.AdaptiveAvgPool2d(1),
-            nn.Conv2d(32, 8, kernel_size=1, groups=4),
-            nn.Hardswish(True),
-            nn.Conv2d(8, 32, kernel_size=1, groups=4),
-            nn.Sigmoid()
-        )
-        self.act4 = nn.Sequential(
+        self.tconv5 = nn.ConvTranspose2d(64, 32, kernel_size=4, stride=2, padding=1, groups=4)
+        self.act5 = nn.Sequential(
             nn.PReLU(),
-            nn.InstanceNorm2d(32)
+            nn.BatchNorm2d(32)
         )
 
-        self.hourglass5 = nn.Sequential(
+        self.hourglass6 = nn.Sequential(
             nn.Conv2d(32, 8, kernel_size=3, groups=4, padding=1),
             nn.PReLU(),
-            nn.InstanceNorm2d(8),
+            nn.BatchNorm2d(8),
             nn.Conv2d(8, 32, kernel_size=3, groups=4, padding=1),
             nn.PReLU(),
-            nn.InstanceNorm2d(32)
+            nn.BatchNorm2d(32)
         )
 
-        self.tconv6 = nn.ConvTranspose2d(32, 16, kernel_size=3, stride=2, padding=1, output_padding=1, groups=4)
-        self.se6 = nn.Sequential(
-            nn.AdaptiveAvgPool2d(1),
-            nn.Conv2d(16, 4, kernel_size=1, groups=4),
-            nn.Hardswish(True),
-            nn.Conv2d(4, 16, kernel_size=1, groups=4),
-            nn.Sigmoid()
-        )
-        self.act6 = nn.Sequential(
+        self.tconv7 = nn.ConvTranspose2d(32, 16, kernel_size=4, stride=2, padding=1, groups=4)
+        self.act7 = nn.Sequential(
             nn.PReLU(),
-            nn.InstanceNorm2d(16)
+            nn.BatchNorm2d(16)
         )
 
-        self.hourglass7 = nn.Sequential(
+        self.hourglass8 = nn.Sequential(
             nn.Conv2d(16, 4, kernel_size=3, groups=4, padding=1),
             nn.PReLU(),
-            nn.InstanceNorm2d(4),
+            nn.BatchNorm2d(4),
             nn.Conv2d(4, 16, kernel_size=3, groups=4, padding=1),
             nn.PReLU(),
-            nn.InstanceNorm2d(16)
+            nn.BatchNorm2d(16)
         )
 
-        self.tconv8 = nn.Sequential(
+        self.tconv9 = nn.Sequential(
             nn.ConvTranspose2d(16, 16, kernel_size=4, stride=2, padding=1, groups=4),
             nn.PReLU(),
-            nn.InstanceNorm2d(16)
+            nn.BatchNorm2d(16)
         )
 
-        self.conv9 = nn.Conv2d(16, 16, kernel_size=3, groups=4, padding=1)
-        self.se9 = nn.Sequential(
-            nn.AdaptiveAvgPool2d(1),
-            nn.Conv2d(16, 4, kernel_size=1, groups=4),
-            nn.Hardswish(True),
-            nn.Conv2d(4, 16, kernel_size=1, groups=4),
-            nn.Sigmoid()
-        )
-        self.act9 = nn.Sequential(
+        self.conv10 = nn.Conv2d(16, 16, kernel_size=3, groups=4, padding=1)
+        self.act10 = nn.Sequential(
             nn.PReLU(),
-            nn.InstanceNorm2d(16)
+            nn.BatchNorm2d(16)
         )
 
         self.final = nn.Sequential(
-            nn.Conv2d(16, 1, kernel_size=3, padding=1),
-            nn.Tanh()
+            nn.Conv2d(16, 3, kernel_size=3, padding=1),
+            nn.Hardsigmoid(True)
         )
 
     def forward(self, z):
         out = self.l0(z)
         out = out.view(out.shape[0], 512, self.init_size, self.init_size)
-        out = self.tconv0(out)
-        out = self.act0(out * self.se0(out).expand_as(out))
-        out = self.tconv1(out)
-        out = self.act1(out * self.se1(out).expand_as(out)) # 16 x 16
+        out = self.tconv1(out) # 8 x 8
+        out = self.act1(out)
         out = self.tconv2(out)
-        out = self.act2(out * self.se2(out).expand_as(out))
-        out = out + self.hourglass3(out) # 32 x 32
-        out = self.tconv4(out)
-        out = self.act4(out * self.se4(out).expand_as(out))
-        out = out + self.hourglass5(out) # 64 x 64
-        out = self.tconv6(out)
-        out = self.act6(out * self.se6(out).expand_as(out))
-        out = out + self.hourglass7(out) # 128 x 128
-        out = self.tconv8(out) # 256 x 256
-        out = self.conv9(out)
-        out = self.act9(out * self.se9(out).expand_as(out))
+        out = self.act2(out) # 16 x 16
+        out = self.tconv3(out)
+        out = self.act3(out)
+        out = out + self.hourglass4(out) # 32 x 32
+        out = self.tconv5(out)
+        out = self.act5(out)
+        out = out + self.hourglass6(out) # 64 x 64
+        out = self.tconv7(out)
+        out = self.act7(out)
+        out = out + self.hourglass8(out) # 128 x 128
+        out = self.tconv9(out) # 256 x 256
+        out = self.conv10(out)
+        out = self.act10(out)
         return self.final(out)
 
 
