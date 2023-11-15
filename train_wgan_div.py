@@ -111,9 +111,58 @@ transform = transforms.Compose([
 ])
 data = floorPlanDataset(path=path, transform=transform)
 
+def generate_images(G, epoch, timestr):
+
+    if not os.path.exists(os.path.join('results', timestr)):
+        os.mkdir(os.path.join('results', timestr))
+
+    # Generate some examples
+    noise = torch.randn(BATCH_SIZE, Z_DIM, device=device)
+    output = G(noise).cpu()
+
+    save_image(output.data, os.path.join('results', timestr, 'generated_examples_' + str(epoch) +  '.png'),
+               nrow=8, normalize=True)
+
+
+def save_experiment(real_img_list, timestr, best_g_loss, best_d_loss, G_loss, D_loss, D, G):
+
+    # Save discriminator and generator models
+    save_model(D, os.path.join('results', timestr, 'Discriminator.pth'))
+    save_model(G, os.path.join('results', timestr, 'Generator.pth'))
+
+    trial_dict = {
+        'Model name': [timestr],
+        'Learning rate': [lr],
+        'Batch size': [BATCH_SIZE],
+        'Z-dimension': [Z_DIM],
+        'Minimum Generator Loss': [best_g_loss],
+        'Minimum Discriminator Loss': [best_d_loss]
+    }
+
+    # Save statistics to a csv file
+    trial_dict = pd.DataFrame(trial_dict)
+    trial_dict.to_csv(os.path.join('results', timestr, 'metrics.csv'), index=False, header=True)
+
+    # save_image(real_img_list.data, os.path.join('results', timestr, 'real_examples.png'),
+    #            nrow=8, normalize=True)
+
+    plt.plot(G_loss)
+    plt.title('Generator Loss during Training')
+    plt.xlabel('# of Iterations')
+    plt.ylabel('Generator Los')
+    plt.savefig(os.path.join('results', timestr, 'generator_loss.png'))
+
+    plt.clf()
+    plt.plot(D_loss)
+    plt.title('Discriminator Loss during Training')
+    plt.xlabel('# of Iterations')
+    plt.ylabel('Discriminator Loss')
+    plt.savefig(os.path.join('results', timestr, 'discriminator_loss.png'))
+
 # Dataloader
 dataloader = torch.utils.data.DataLoader(data, batch_size=opt.batch_size,
                                          shuffle=True)
+
 
 # Optimizers
 optimizer_G = torch.optim.Adam(generator.parameters(), lr=opt.lr, betas=(opt.b1, opt.b2))
@@ -126,9 +175,18 @@ Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 #  Training
 # ----------
 
+G_losses = []
+D_losses = []
+iters = 0
+best_G_Loss, best_D_Loss, best_g_model, best_d_model = None, None, None, None
+
 batches_done = 0
+print("Starting Training Loop...")
+training_start = time.process_time()
 for epoch in range(opt.n_epochs):
-    for i, (imgs) in enumerate(dataloader):
+    epoch_G_Loss = 0
+    epoch_D_Loss = 0
+    for i, (imgs) in progress_bar(enumerate(dataloader), total=len(dataloader)):
 
         # Configure input
         real_imgs = Variable(imgs.type(Tensor), requires_grad=True)
@@ -199,7 +257,29 @@ for epoch in range(opt.n_epochs):
             if batches_done % opt.sample_interval == 0:
                 output = fake_imgs.cpu()
 
-                img_name = os.path.join('results', timestr, str(batches_done) + '.png')
+                img_name = os.path.join('results', 'train_wgan_div', timestr, str(batches_done) + '.png')
                 save_image(output.data, img_name, nrow=8, normalize=True)
+            
+            G_losses.append(g_loss.item())
+            D_losses.append(d_loss.item())
+            epoch_D_Loss += d_loss.item()
+            epoch_G_Loss += g_loss.item()
 
         batches_done += 1
+        real_images = next(iter(dataloader))
+    epoch_D_Loss /= len(dataloader)
+    epoch_G_Loss /= len(dataloader)
+
+    if best_D_Loss is None or epoch_D_Loss < best_D_Loss:
+        best_D_Loss = epoch_D_Loss
+        best_d_model = deepcopy(netD)
+    if best_G_Loss is None or epoch_G_Loss < best_G_Loss:
+        best_G_Loss = epoch_G_Loss
+        best_g_model = deepcopy(netG)
+
+    generate_images(best_g_model, epoch, timestr)
+
+total_training_time = time.process_time() - training_start
+print(f'Total training time (s): %.2f' % total_training_time)
+save_experiment(real_images, timestr, best_G_Loss, best_D_Loss, G_losses,
+    D_losses, best_d_model, best_g_model)
