@@ -6,12 +6,25 @@ import torch
 token_to_id = {} # TODO This has to be saved with each model, as mappings may vary from model to model
 ctr = 0
 
-start_token = re.escape('<?xml version="1.0" encoding="utf-8"?>\n<svg style="background-color: #000;" version="1.1" viewBox="0 0 100.0 100.0" xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape">')
-pattern = f'(font-family=)(")([a-zA-Z0-9 ]+)|([\w:-]+=)|(rgb|none|rotate|layer)|(<)(\w+)|(/>)|(</\w+>)|([A-Z_]+)(")|({start_token})|(.)'
-
+start_token = re.escape('<?xml version="1.0"?>\n<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"')
+pattern = f'(style="[^"]*")|([\w:-]+=)|(rgb|none|rotate|layer|matrix|default|visible|px|em|block|crosshair|translate)|(<)(\w+)|(/>)|(</\w+>)|({start_token})|(.)'
+# Requires that we remove text, desc, class, id, and extra spaces in pre-processing
 def custom_tokenizer(text):
     matches = re.findall(pattern, text, re.DOTALL)
-    return [match for group in matches for match in group if match not in [None, '']]
+    res = []
+    for group in matches:
+        if group[0]:
+            styles = re.findall(r'(style=)(")|(rgb|none|rotate|layer|matrix|default|visible|px|em|block|crosshair|translate)|([a-zA-Z0-9-]*:)|(.)', group[0], re.DOTALL)
+            for match in styles:
+                for i in match:
+                    if i not in [None, '']:
+                        res.append(i)
+            continue
+        for match in group:
+            if match not in [None, '']:
+                res.append(match)
+
+    return res
 
 def get_id(token):
     global ctr
