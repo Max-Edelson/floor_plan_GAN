@@ -7,6 +7,7 @@ import json
 class Tokenizer(object):
     def __init__(self, tokenizer_meta_data=os.join('data', 'tokenizer_meta_data.json')):
         self.token_to_id = {} # TODO This has to be saved with each model, as mappings may vary from model to model
+        self.id_to_token = {}
         self.ctr = 0
         if os.path.isfile(tokenizer_meta_data): # tokenizer_meta_data file already exists. Load it in
             meta_data = json.load(open(tokenizer_meta_data,))
@@ -40,8 +41,12 @@ class Tokenizer(object):
         if token in self.token_to_id:
             return self.token_to_id[token]
         self.token_to_id[token] = self.ctr
+        self.id_to_token[self.ctr] = token
         self.ctr += 1
         return self.token_to_id[token]
+    
+    def get_token(self, id):
+        return self.id_to_token[id]
     
     def save_tokenizer_meta_data(self, path=os.join('data/tokenizer_meta_data.json')):
         meta_data = {'token_to_id': self.token_to_id,
