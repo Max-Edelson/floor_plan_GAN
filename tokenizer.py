@@ -12,7 +12,7 @@ class Tokenizer(object):
         self.id_to_token = {}
         self.tokens_per_document = defaultdict(dict) # key = document -> returns dict of token counts per that document
         self.global_token_count = {}
-        self.ctr = 0
+        self.ctr = 1 # 0 used by pytorch for padding
         '''if os.path.isfile(tokenizer_meta_data): # tokenizer_meta_data file already exists. Load it in
             meta_data = json.load(open(tokenizer_meta_data,))
             self.token_to_id = meta_data['token_to_id']
