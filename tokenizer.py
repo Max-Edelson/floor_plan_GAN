@@ -13,23 +13,55 @@ class Tokenizer(object):
         self.tokens_per_document = defaultdict(dict) # key = document -> returns dict of token counts per that document
         self.global_token_count = {}
         self.ctr = 0
-        if os.path.isfile(tokenizer_meta_data): # tokenizer_meta_data file already exists. Load it in
+        '''if os.path.isfile(tokenizer_meta_data): # tokenizer_meta_data file already exists. Load it in
             meta_data = json.load(open(tokenizer_meta_data,))
             self.token_to_id = meta_data['token_to_id']
             self.id_to_token = meta_data['id_to_token']
             self.tokens_per_document = meta_data['tokens_per_document']
-            self.ctr = meta_data['ctr']
+            self.ctr = meta_data['ctr']'''
+        #self.start_token = re.escape('<?xml version="1.0"?>\n<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"')
 
-        self.start_token = re.escape('<?xml version="1.0"?>\n<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"')
-        self.pattern = f'(style="[^"]*")|([\w:-]+=)|(rgb|none|rotate|layer|matrix|default|visible|px|em|block|crosshair|translate)|(<)(\w+)|(/>)|(</\w+>)|({self.start_token})|(.)'
+        
+        self.start_token1 = re.escape('<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"')
+        self.start_token2 = re.escape('<?xml version="1.0"?>\n<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"')
+        #self.pattern =   r'(fill-opacity:\s*.*?[;\s/])|(stroke-opacity:\s*.*?[;\s/])|(stroke-width:\s*.*?[;\s/])|(pointer-events:\s*.*?[;\s/])'
+        self.pattern =  rf'({self.start_token1})|({self.start_token2})|(stroke\s*[:=]\s*"([^"]*)")|(fill\s*[:=]\s*"([^"]*)")|([\w:-]+=)|(fill-opacity:\s*.*?[;\s/])|(stroke-opacity:\s*.*?[;\s/])|(stroke-width:\s*.*?[;\s/])|(pointer-events:\s*.*?[;\s/])|(rgb)|(none)|(rotate)|(layer)|(matrix)|(default)|(visible)|\d+(px)|\d+(em)|(block)|(crosshair)|(translate)|(<\w+)|(</\w+>)|(>)|(\s/>)|(.)'
+                           # '''
+
+        ''' (stroke\s*[:=]\s*"([^"]*)")|
+        ([\w:-]+=)|
+        (font-family: Verdana; font-size: 33px; fill-opacity: 1; cursor: default;)|
+        (fill-opacity:\s*.*?;)|
+        (stroke-opacity:\s*.*?;)|
+        (stroke-width:\s*.*?;)|
+        (pointer-events:\s*.*?;)
+        (rgb)|(none)|(rotate)|(layer)|(matrix)|(default)|(visible)|(px)|(em)|(block)|(crosshair)|(translate)|
+        (<)(\w+)|
+        (/>)|
+        (</\w+>)|
+        ({self.start_token})|
+        (\s)|
+        (.)'''
+        #self.pattern = f'(style="[^"]*")|([\w:-]+=)|(rgb|none|rotate|layer|matrix|default|visible|px|em|block|crosshair|translate)|(<)(\w+)|(/>)|(</\w+>)|({self.start_token})|(.)'
     
     # Requires that we remove text, desc, class, id, and extra spaces in pre-processing
     def tokenize(self, text, file=None):
         matches = re.findall(self.pattern, text, re.DOTALL)
+        #print(*matches, sep='\n')      
+
         res = []
-        for group in matches:
+        for tupl in matches:
+            for b in tupl:
+                if b != '':
+                    res.append(b)
+                    break
+       #print(text)
+        #print(*(res[:200]), sep='\n')
+        #print(res)
+        '''for group in matches:
             if group[0]:
                 styles = re.findall(r'(style=)(")|(rgb|none|rotate|layer|matrix|default|visible|px|em|block|crosshair|translate)|([a-zA-Z0-9-]*:)|(.)', group[0], re.DOTALL)
+                #print(styles)
                 for match in styles:
                     for i in match:
                         if i not in [None, '']:
@@ -37,7 +69,7 @@ class Tokenizer(object):
                 continue
             for match in group:
                 if match not in [None, '']:
-                    res.append(match)
+                    res.append(match)'''
 
         token_tensor = torch.tensor([self.get_id(token, file) for token in res])
         return token_tensor
@@ -136,6 +168,20 @@ class TextDataset(Dataset, ):
 
         return data_point
     
+if __name__ == '__main__':
+
+    tokenizer = Tokenizer()
+
+    with open('/Users/maxedelson/Documents/GitHub/floor_plan_GAN/data/cubicasa5k/svgs/1_model.svg', 'r') as f:
+        text = ''.join(f.readlines())
+
+    ids = tokenizer.tokenize(text)
+
+    un_tokenized = ''
+    for id in ids:
+        un_tokenized += tokenizer.get_token(id.item())
+
+    #print(un_tokenized)    
 #dataset = TextDataset(root_dir='data/cubicasa5k/svgs')
 #dataset.tokenize_all_data()
 
