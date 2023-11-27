@@ -172,7 +172,7 @@ if __name__ == '__main__':
 
     tokenizer = Tokenizer()
 
-    with open('/Users/maxedelson/Documents/GitHub/floor_plan_GAN/data/cubicasa5k/svgs/1_model.svg', 'r') as f:
+    with open('data/cubicasa5k/svgs/1_model.svg', 'r') as f:
         text = ''.join(f.readlines())
 
     ids = tokenizer.tokenize(text)
