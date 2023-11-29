@@ -143,7 +143,7 @@ class TextDataset(Dataset, ):
         self.seq_limit = 100000
 
         # List all files in the directory
-        self.files_json = f'{dataset_type}_svgs<{token_limit}.json' #os.listdir(root_dir)
+        self.files_json = f'{dataset_type}_svgs_{token_limit}.json' #os.listdir(root_dir)
         #tokenizer_meta_data = os.path.join('data', 'tokenizer_data', dataset_type + '_vocab_data_' + str(token_limit) + '.json')
         self.files = None
         with open(self.files_json, 'r') as openfile:
@@ -234,7 +234,7 @@ if __name__ == '__main__':
     small_file_obj = json.dumps({'small_files': small_files_list}, indent=4)
  
     # Writing to sample.json
-    with open(f'{dataset_type}_svgs<{token_limit}.json', "w") as outfile:
+    with open(f'{dataset_type}_svgs_{token_limit}.json', "w") as outfile:
         outfile.write(small_file_obj)
     outfile.close()
 

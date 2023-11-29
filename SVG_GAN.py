@@ -40,6 +40,8 @@ class Generator(nn.Module):
                 output_tokens = sample(output)
                 output_embeddings = self.embedding(output_tokens)
                 input = torch.cat((x[:, i+1, :], output_embeddings), dim=1)
+        
+        pdb.set_trace()
 
         return torch.stack(outputs, dim=1)
     
