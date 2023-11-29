@@ -797,7 +797,7 @@ class AlbertForNextSentencePrediction(AlbertPreTrainedModel):
 
         return outputs  # (next_sentence_loss), seq_relationship_score, (hidden_states), (attentions)
 
-
+'''
 @add_start_docstrings("""Bert Model transformer with a sequence classification/regression head on top (a linear layer on top of
     the pooled output) e.g. for GLUE tasks. """,
                       ALBERT_START_DOCSTRING, ALBERT_INPUTS_DOCSTRING)
@@ -866,7 +866,6 @@ class AlbertForSequenceClassification(AlbertPreTrainedModel):
             outputs = (loss,) + outputs
 
         return outputs  # (loss), logits, (hidden_states), (attentions)
-
 
 @add_start_docstrings("""Bert Model with a multiple choice classification head on top (a linear layer on top of
     the pooled output and a softmax) e.g. for RocStories/SWAG tasks. """,
@@ -1086,3 +1085,4 @@ class AlbertForQuestionAnswering(AlbertPreTrainedModel):
             outputs = (total_loss,) + outputs
 
         return outputs  # (loss), start_logits, end_logits, (hidden_states), (attentions)
+'''

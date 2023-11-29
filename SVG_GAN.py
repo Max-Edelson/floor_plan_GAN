@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.utils.rnn import pad_sequence
+import pdb
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 MAX_SEQUENCE_LENGTH = 99850
 
@@ -21,6 +22,9 @@ class Generator(nn.Module):
         self.embedding = nn.Embedding(vocab_size, embedding_dim, padding_idx=0)
 
     def forward(self, x):
+
+        pdb.set_trace()
+
         batch_size = x.size(0)
         hidden_states = [torch.zeros(batch_size, 256).to(device) for _ in range(3)]
         cell_states = [torch.zeros(batch_size, 256).to(device) for _ in range(3)]
@@ -57,6 +61,8 @@ class Discriminator(nn.Module):
         self.fc = nn.Linear(32 * 2, 1)
 
     def forward(self, x):
+
+        pdb.set_trace()
 
         out, _ = self.lstm(self.embedding(x))
         out = out[:, -1, :]

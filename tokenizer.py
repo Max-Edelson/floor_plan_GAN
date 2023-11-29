@@ -6,9 +6,10 @@ import json
 from collections import defaultdict
 import numpy as np
 import time
+import statistics
 
 class Tokenizer(object):
-    def __init__(self, tokenizer_meta_data=os.path.join('data', 'tokenizer_data','cubicasa_vocab_data.json')):
+    def __init__(self, dataset_type, tokenizer_meta_data, readInMetadata=True):
         self.token_to_id = {} # TODO This has to be saved with each model, as mappings may vary from model to model
         self.id_to_token = {}
         self.tokens_per_document = defaultdict(dict) # key = document -> returns dict of token counts per that document
@@ -16,7 +17,7 @@ class Tokenizer(object):
         self.ctr = 1 # 0 used by pytorch for padding
         self.end_token = None
         self.max_seq_len = 0
-        if os.path.isfile(tokenizer_meta_data): # tokenizer_meta_data file already exists. Load it in
+        if os.path.isfile(tokenizer_meta_data) and readInMetadata: # tokenizer_meta_data file already exists. Load it in
             meta_data = json.load(open(tokenizer_meta_data,))
             self.token_to_id = meta_data['token_to_id']
             self.id_to_token = meta_data['id_to_token']
@@ -26,30 +27,29 @@ class Tokenizer(object):
             self.max_seq_len = meta_data['max_seq_len']
         #self.start_token = re.escape('<?xml version="1.0"?>\n<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"')
         
-        self.start_token1 = re.escape('<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"')
+        self.start_token1 = re.escape('<?xml version="1.0" encoding="UTF-8"?>\n<svg style="background-color: #000;" version="1.1" viewBox="0 0 100.0 100.0" xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape">')
         self.start_token2 = re.escape('<?xml version="1.0"?>\n<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"')
         #self.pattern =   r'(fill-opacity:\s*.*?[;\s/])|(stroke-opacity:\s*.*?[;\s/])|(stroke-width:\s*.*?[;\s/])|(pointer-events:\s*.*?[;\s/])'
-        self.pattern =  rf'({self.start_token1})|({self.start_token2})|(stroke\s*[:=]\s*"([^"]*)")|(fill\s*[:=]\s*"([^"]*)")|([\w:-]+=)|(fill-opacity:\s*.*?[;\s/])|(stroke-opacity:\s*.*?[;\s/])|(stroke-width:\s*.*?[;\s/])|(pointer-events:\s*.*?[;\s/])|(rgb)|(none)|(rotate)|(layer)|(matrix)|(default)|(visible)|\d+(px)|\d+(em)|(block)|(crosshair)|(translate)|(<\w+)|(</\w+>)|(>)|(\s/>)|(.)'
-                           # '''
+        self.pattern = None
+        if dataset_type == 'floorplan':
+            self.pattern =  rf'({self.start_token1})|({self.start_token2})|(font-family=\s*.*?)[;\s/]|([\w:-]+=)|(fill-opacity:\s*.*?[;\s/])|(stroke-opacity:\s*.*?[;\s/])|(stroke-width:\s*.*?[;\s/])|(pointer-events:\s*.*?[;\s/])|(rgb)|(none)|(rotate)|(layer)|(matrix)|(default)|(visible)|\d+(px)|\d+(em)|(block)|(crosshair)|(translate)|(<\w+)|(</\w+>)|(>)|(\s/>)|(.)'
+        elif dataset_type == 'cubicasa5k':
+            self.pattern =  rf'({self.start_token1})|({self.start_token2})|(stroke\s*[:=]\s*"([^"]*)")|(fill\s*[:=]\s*"([^"]*)")|([\w:-]+=)|(fill-opacity:\s*.*?[;\s/])|(stroke-opacity:\s*.*?[;\s/])|(stroke-width:\s*.*?[;\s/])|(pointer-events:\s*.*?[;\s/])|(rgb)|(none)|(rotate)|(layer)|(matrix)|(default)|(visible)|\d+(px)|\d+(em)|(block)|(crosshair)|(translate)|(<\w+)|(</\w+>)|(>)|(\s/>)|(.)'
 
-        ''' (stroke\s*[:=]\s*"([^"]*)")|
-        ([\w:-]+=)|
-        (font-family: Verdana; font-size: 33px; fill-opacity: 1; cursor: default;)|
-        (fill-opacity:\s*.*?;)|
-        (stroke-opacity:\s*.*?;)|
-        (stroke-width:\s*.*?;)|
-        (pointer-events:\s*.*?;)
-        (rgb)|(none)|(rotate)|(layer)|(matrix)|(default)|(visible)|(px)|(em)|(block)|(crosshair)|(translate)|
-        (<)(\w+)|
-        (/>)|
-        (</\w+>)|
-        ({self.start_token})|
-        (\s)|
-        (.)'''
         #self.pattern = f'(style="[^"]*")|([\w:-]+=)|(rgb|none|rotate|layer|matrix|default|visible|px|em|block|crosshair|translate)|(<)(\w+)|(/>)|(</\w+>)|({self.start_token})|(.)'
     
+    def remove_non_ascii(self, input_string):
+        # Define a regular expression pattern to match non-ASCII characters
+        non_ascii_pattern = re.compile('[^\x00-\x7F]')
+
+        # Use the pattern to find and replace non-ASCII characters with an empty string
+        result_string = re.sub(non_ascii_pattern, '', input_string)
+
+        return result_string
+
     # Requires that we remove text, desc, class, id, and extra spaces in pre-processing
     def tokenize(self, text, file=None):
+        text = self.remove_non_ascii(text)
         matches = re.findall(self.pattern, text, re.DOTALL)
         #print(*matches, sep='\n')      
 
@@ -98,7 +98,7 @@ class Tokenizer(object):
     def get_token(self, id):
         return self.id_to_token[id]
     
-    def save_tokenizer_meta_data(self, path=os.path.join('data', 'tokenizer_data','cubicasa_vocab_data.json')):
+    def save_tokenizer_meta_data(self, path):
         meta_data = {'token_to_id': self.token_to_id,
                      'id_to_token': self.id_to_token,
                      'ctr':         self.ctr,
@@ -137,18 +137,19 @@ class Tokenizer(object):
         self.save_tokenizer_meta_data()
 
 class TextDataset(Dataset, ):
-    def __init__(self, end_token=181, transform=None, max_seq_len=99850):
+    def __init__(self, tokenizer, transform=None, dataset_type='cubicasa5k', token_limit=50000):
         #self.root_dir = root_dir
         self.transform = transform
         self.seq_limit = 100000
-        self.end_token = end_token
 
         # List all files in the directory
-        self.files_json = f'svgs<{token_limit}.json' #os.listdir(root_dir)
+        self.files_json = f'{dataset_type}_svgs<{token_limit}.json' #os.listdir(root_dir)
+        #tokenizer_meta_data = os.path.join('data', 'tokenizer_data', dataset_type + '_vocab_data_' + str(token_limit) + '.json')
         self.files = None
         with open(self.files_json, 'r') as openfile:
             self.files = json.load(openfile)['small_files'] # gives a list of file names
-        self.tokenizer = Tokenizer()
+        self.tokenizer = tokenizer
+        self.end_token = tokenizer.end_token
         self.num_tokens = len(self.tokenizer.id_to_token) + 2 # one for end token, one for padding
 
     def __len__(self):
@@ -194,43 +195,52 @@ class TextDataset(Dataset, ):
 
 if __name__ == '__main__':
     tokenized_data = []
-    token_limit = 100000
-    '''
-    tokenizer = Tokenizer()
-    #dataset = os.listdir(os.path.join('data','cubicasa5k','no_text_2'))
-    dataset = None
-    with open(f'svgs<{token_limit}.json', 'r') as openfile:
-        dataset = json.load(openfile)['small_files']
+    token_limit = 30000
+    dataset_type='floorplan'  #'cubicasa5k'
+    tokenizer_meta_data = os.path.join('data', 'tokenizer_data', dataset_type + '_vocab_data_' + str(token_limit) + '.json')
+
+    tokenizer = Tokenizer(dataset_type=dataset_type, tokenizer_meta_data=tokenizer_meta_data, readInMetadata=False)
+    #dataset = os.listdir(os.path.join('data', dataset_type, 'no_text_2'))
+    dataset = os.listdir(os.path.join('data', dataset_type, 'svgs'))
+    #dataset = None
+    #with open(f'{dataset_type}_svgs<{token_limit}.json', 'r') as openfile:
+    #    dataset = json.load(openfile)['small_files']
     
     small_files_list = []
 
+    lengths = []
+
     t0 = time.time()
     for file in dataset:
-        #file = os.path.join('data','cubicasa5k','no_text_2', file)
+        #file = os.path.join('data', dataset_type, 'no_text_2', file)
+        file = os.path.join('data', dataset_type, 'svgs', file)
         #print(f'file: {file}')
         with open(file, 'r') as f:
             text = ''.join(f.readlines())
         ids = tokenizer.tokenize(text)
+        lengths.append(ids.shape[0])
         if ids.shape[0] < token_limit:
             tokenized_data.append((ids, ids.shape[0]))
             small_files_list.append(file)
     t1 = time.time()
 
+    print(f'mean length: {statistics.mean(lengths)}, median length: {statistics.median(lengths)}, length stdev: {statistics.stdev(lengths)}')
+
     end_token = tokenizer.ctr
     tokenizer.end_token = end_token
     tokenizer.ctr += 1
-    tokenizer.save_tokenizer_meta_data()
+    tokenizer.save_tokenizer_meta_data(path=tokenizer_meta_data)
     print(f'end_token: {end_token}')
     small_file_obj = json.dumps({'small_files': small_files_list}, indent=4)
  
     # Writing to sample.json
-    with open(f'svgs<{token_limit}.json', "w") as outfile:
+    with open(f'{dataset_type}_svgs<{token_limit}.json', "w") as outfile:
         outfile.write(small_file_obj)
     outfile.close()
 
     tokenized_data.sort(reverse=True, key=lambda x: x[1])
-    print(f'Max sequence length: {tokenized_data[0][1]}. Tokenization took {t1-t0} seconds. Contains {len(tokenized_data)} examples. end_token: {end_token}. Vocab Size: {tokenizer.ctr}.')
-    '''
+    print(f'Max sequence length: {tokenized_data[0][1]}. Tokenization took {(t1-t0)/60} minutes. Contains {len(tokenized_data)} examples. end_token: {end_token}. Vocab Size: {tokenizer.ctr}.')
+    
 
     #dataset = TextDataset()
     #preprocessed_item = dataset[0]

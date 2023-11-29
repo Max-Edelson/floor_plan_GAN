@@ -355,3 +355,5 @@ def main():
                             f.write(model_to_save.config.to_json_string())
                         # save vocab
                         tokenizer.save_vocabulary(output_dir)
+
+main()

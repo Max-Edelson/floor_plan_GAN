@@ -243,7 +243,8 @@ def main():
     init_logger(log_file=args.output_dir +"pregenerate_training_data.log")
     logger.info("pregenerate training data parameters:\n %s", args)
     tokenizer = BertTokenizer(vocab_file=args.vocab_path, do_lower_case=args.do_lower_case)
-
+    
+    '''
     # split big file
     if args.do_split:
         corpus_path = args.data_dir / "corpus/corpus.txt"
@@ -253,6 +254,7 @@ def main():
         line_per_file = args.line_per_file
         command = f'split -a 4 -l {line_per_file} -d {corpus_path} {split_save_path}/shard_'
         os.system(f"{command}")
+    '''
 
     # generator train data
     if args.do_data:
