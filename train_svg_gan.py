@@ -11,7 +11,6 @@ from SVG_GAN import Generator, Discriminator
 import torch.optim as optim
 from copy import deepcopy
 from tqdm import tqdm as progress_bar
-from draw_strokes import draw_strokes, make_grid_svg
 import matplotlib.pyplot as plt
 import pandas as pd
 import pdb
@@ -22,6 +21,8 @@ import torch.autograd as autograd
 mpl.use('TkAgg')  # !IMPORTANT
 cuda = True if torch.cuda.is_available() else False
 Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
+
+# https://drive.google.com/file/d/1qTTV3NbAkgIgwRBmFfJLITfrVNaIOtBp/view?usp=sharing
 
 def save_model(path, model):
 
@@ -36,7 +37,7 @@ def generate_images(timestr, netG, epoch, args, tokenizer):
         os.mkdir(os.path.join('results', timestr, 'generated_images'))
 
     # Generate some examples
-    noise = torch.randn(args.batch_size, args.max_length, args.noise_dim, device=device)
+    noise = torch.randn(args.batch_size, tokenizer.max_seq_len, args.noise_dim, device=device)
 
     with torch.no_grad():
 
@@ -58,9 +59,8 @@ def generate_images(timestr, netG, epoch, args, tokenizer):
             
             untokenized_str = ''.join(untokenized_data)
 
-            f = open(os.path.join('results', timestr, 'generated_images', 
-            str(epoch) + '_' + str(i) + '.svg'), 'w')
-            f.write(un_tokenized)
+            f = open(os.path.join('results', timestr, 'generated_images', str(epoch) + '_' + str(i) + '.svg'), 'w')
+            f.write(untokenized_str)
             f.close()
             
 
@@ -146,10 +146,14 @@ def train(timestr, netG, netD, args, train_loader, tokenizer):
             optimizerD.zero_grad()
 
             # Sample noise as generator input
-            z = torch.randn(data.shape[0], 251, args.noise_dim, device=device)
+            z = torch.randn(data.shape[0], tokenizer.max_seq_len, args.noise_dim, device=device)
+
+            pdb.set_trace()
 
             # Generate a batch of images
             fake_imgs = netG(z)
+
+            # yo yo
 
             real_validity = torch.mean(netD(data))
             fake_validity = torch.mean(netD(fake_imgs.detach()))
@@ -234,7 +238,7 @@ def params():
     parser = argparse.ArgumentParser()
     parser.add_argument("--lr", default=2e-4, type=float,
                         help="Model learning rate starting point.")
-    parser.add_argument("--batch-size", default=256, type=int,
+    parser.add_argument("--batch-size", default=8, type=int,
                         help="Batch size per GPU/CPU for training and evaluation.")
     parser.add_argument("--weight-decay", default=1e-5, type=float,
                         help="L2 Regularization")
@@ -247,7 +251,6 @@ def params():
     parser.add_argument("--noise-dim", default=100, type=int)
     parser.add_argument("--clip-value", type=float, default=1.5, help="lower and upper clip value for disc. weights")
     parser.add_argument("--embedding-dim", type=int, default=128)
-    parser.add_argument("--max-length", type=int, default=29951)
     parser.add_argument("--vocab-size", type=int, default=181)
     args = parser.parse_args()
 
@@ -260,33 +263,34 @@ def init_weights(m):
 
 if __name__ == '__main__':
 
-    pdb.set_trace()
-
     args = params()
     timestr = time.strftime("%Y%m%d-%H%M%S")
     
     token_limit=30000
     dataset_type='cubicasa5k'
     tokenizer_meta_data = os.path.join('data', 'tokenizer_data', dataset_type + '_vocab_data_' + str(token_limit) + '.json')
-    tokenizer = Tokenizer(dataset_type=dataset_type, tokenizer_meta_data=tokenizer_meta_data, readInMetadata=True)
+    tokenizer = Tokenizer(dataset_type=dataset_type, tokenizer_meta_data=tokenizer_meta_data, token_limit=token_limit, readInMetadata=True)
 
-    train_dataset = TextDataset(tokenizer=tokenizer, dataset_type=dataset_type, token_limit=50000)
+    train_dataset = TextDataset(tokenizer=tokenizer, dataset_type=dataset_type, token_limit=token_limit)
 
-    end_token = tokenizer.ctr
-    tokenizer.end_token = end_token
-    tokenizer.ctr += 1
+    #end_token = tokenizer.ctr
+    #tokenizer.end_token = end_token
+    #tokenizer.ctr += 1
 
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
 
+    pdb.set_trace()
+
     # Create the Generator and Discriminator networks
     netG = Generator(
-        vocab_size=args.vocab_size,
+        vocab_size=tokenizer.end_token+1,
         embedding_dim=args.embedding_dim,
-        latent_dim=args.noise_dim
+        latent_dim=args.noise_dim,
+        max_sequence_length=tokenizer.max_seq_len
     )
 
     netD = Discriminator(
-       vocab_size=args.vocab_size,
+       vocab_size=tokenizer.end_token+1,
        embedding_dim=args.embedding_dim
     )
 

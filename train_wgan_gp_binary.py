@@ -14,8 +14,8 @@ import matplotlib.pyplot as plt
 from dataset import floorPlanDataset
 import time
 # from GAN_model import Generator, Discriminator, Generator2
-# from new_gan import Generator, Discriminator
-from DCGAN import Generator, Discriminator
+from new_gan import Generator, Discriminator
+#from DCGAN import Generator, Discriminator
 from tqdm import tqdm as progress_bar
 import pandas as pd
 from copy import deepcopy
@@ -35,7 +35,7 @@ OUTPUT_PATH = 'output_examples/'
 BATCH_SIZE = 32
 Z_DIM = 100  # Size of z latent vector (i.e. size of generator input). It is used to generate random numbers for the generator.
 X_DIM = 28  # An original image size in MNIST is 28x28. I will change 28x28 to 64x64 with a resize module for the network.
-EPOCH_NUM = 1  # The number of times the entire training dataset is trained in the network. Lager epoch number is better, but you should be careful of overfitting.
+EPOCH_NUM = 200  # The number of times the entire training dataset is trained in the network. Lager epoch number is better, but you should be careful of overfitting.
 REAL_LABEL = 1
 FAKE_LABEL = 0
 lr = 2e-4
@@ -86,23 +86,25 @@ def load_discriminator(path):
     return netD
 
 def generate_images(G, epoch, timestr):
+    path = os.path.join('results', 'wgan_gp_binary', timestr)
 
-    if not os.path.exists(os.path.join('results', timestr)):
-        os.mkdir(os.path.join('results', timestr))
+    if not os.path.exists(os.path.join(path)):
+        os.mkdir(os.path.join(path))
 
     # Generate some examples
     noise = torch.randn(BATCH_SIZE, Z_DIM, device=device)
     output = G(noise).cpu()
 
-    save_image(output.data, os.path.join('results', timestr, 'generated_examples_' + str(epoch) +  '.png'),
+    save_image(output.data, os.path.join(path, 'generated_examples_' + str(epoch) +  '.png'),
                nrow=8, normalize=True)
 
 
 def save_experiment(real_img_list, timestr, best_g_loss, best_d_loss, G_loss, D_loss, D, G):
+    path = os.path.join('results', 'wgan_gp_binary', timestr)
 
     # Save discriminator and generator models
-    save_model(D, os.path.join('results', timestr, 'Discriminator.pth'))
-    save_model(G, os.path.join('results', timestr, 'Generator.pth'))
+    save_model(D, os.path.join(path, 'Discriminator.pth'))
+    save_model(G, os.path.join(path, 'Generator.pth'))
 
     trial_dict = {
         'Model name': [timestr],
@@ -115,7 +117,7 @@ def save_experiment(real_img_list, timestr, best_g_loss, best_d_loss, G_loss, D_
 
     # Save statistics to a csv file
     trial_dict = pd.DataFrame(trial_dict)
-    trial_dict.to_csv(os.path.join('results', timestr, 'metrics.csv'), index=False, header=True)
+    trial_dict.to_csv(os.path.join(path, 'metrics.csv'), index=False, header=True)
 
     # save_image(real_img_list.data, os.path.join('results', timestr, 'real_examples.png'),
     #            nrow=8, normalize=True)
@@ -124,14 +126,14 @@ def save_experiment(real_img_list, timestr, best_g_loss, best_d_loss, G_loss, D_
     plt.title('Generator Loss during Training')
     plt.xlabel('# of Iterations')
     plt.ylabel('Generator Los')
-    plt.savefig(os.path.join('results', timestr, 'generator_loss.png'))
+    plt.savefig(os.path.join(path, 'generator_loss.png'))
 
     plt.clf()
     plt.plot(D_loss)
     plt.title('Discriminator Loss during Training')
     plt.xlabel('# of Iterations')
     plt.ylabel('Discriminator Loss')
-    plt.savefig(os.path.join('results', timestr, 'discriminator_loss.png'))
+    plt.savefig(os.path.join(path, 'discriminator_loss.png'))
 
 
 def compute_gradient_penalty(D, real_samples, fake_samples):
@@ -158,6 +160,13 @@ def compute_gradient_penalty(D, real_samples, fake_samples):
 
 def train(dataloader):
     timestr = time.strftime("%Y%m%d-%H%M%S")
+
+    path = os.path.join('results', 'wgan_gp_binary')
+    if not os.path.exists(path):
+        os.mkdir(path)
+    path = os.path.join(path, timestr)
+    if not os.path.exists(path):
+        os.mkdir(path)
 
     # Create the generator
     netG = Generator().to(device)
@@ -193,6 +202,7 @@ def train(dataloader):
             # Sample noise as generator input
             z = torch.randn(data.shape[0], Z_DIM, device=device)
             gen_imgs = netG(z)
+            #print(f'gen_imgs shape: {gen_imgs.shape}')
 
             # -------------------
             # Train Discriminator
@@ -201,6 +211,7 @@ def train(dataloader):
             optimizerD.zero_grad()
 
             # Measure discriminator's ability to classify real samples
+            #print(f'data shape: {data.shape}')
             real_output = netD(data)
             D_x = real_output.mean().item()
 
@@ -281,6 +292,7 @@ if __name__ == '__main__':
         transforms.Resize((resize_h, resize_w))
     ])
     data = floorPlanDataset(path=path, transform=transform)
+    #print(data[0].shape)
 
     # Dataloader
     dataloader = torch.utils.data.DataLoader(data, batch_size=BATCH_SIZE,

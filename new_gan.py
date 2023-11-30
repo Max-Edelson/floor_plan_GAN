@@ -96,7 +96,7 @@ class Generator(nn.Module):
         )
 
         self.final = nn.Sequential(
-            nn.Conv2d(16, 3, kernel_size=3, padding=1),
+            nn.Conv2d(16, 1, kernel_size=3, padding=1),
             nn.Hardsigmoid(True)
         )
 
@@ -149,6 +149,7 @@ class Discriminator(nn.Module):
         self.adv_layer = nn.Sequential(nn.Linear(128 * 4 * 4, 1), nn.Sigmoid())
 
     def forward(self, img):
+        #print(f'Discriminator img shape: {img.shape}')
         out = self.model(img)
         out = self.adaptive_pool(out)  # This will ensure the output is 4x4 spatially
         out = out.view(out.shape[0], -1)  # Flatten the features

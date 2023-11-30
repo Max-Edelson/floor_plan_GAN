@@ -7,9 +7,10 @@ from collections import defaultdict
 import numpy as np
 import time
 import statistics
+import pdb
 
 class Tokenizer(object):
-    def __init__(self, dataset_type, tokenizer_meta_data, readInMetadata=True):
+    def __init__(self, dataset_type, tokenizer_meta_data, token_limit, readInMetadata=True):
         self.token_to_id = {} # TODO This has to be saved with each model, as mappings may vary from model to model
         self.id_to_token = {}
         self.tokens_per_document = defaultdict(dict) # key = document -> returns dict of token counts per that document
@@ -17,6 +18,7 @@ class Tokenizer(object):
         self.ctr = 1 # 0 used by pytorch for padding
         self.end_token = None
         self.max_seq_len = 0
+        self.token_limit = token_limit
         if os.path.isfile(tokenizer_meta_data) and readInMetadata: # tokenizer_meta_data file already exists. Load it in
             meta_data = json.load(open(tokenizer_meta_data,))
             self.token_to_id = meta_data['token_to_id']
@@ -75,7 +77,8 @@ class Tokenizer(object):
                 if match not in [None, '']:
                     res.append(match)'''
 
-        self.max_seq_len = max(self.max_seq_len, len(res))
+        if len(res) < self.token_limit:
+            self.max_seq_len = max(self.max_seq_len, len(res))
         token_tensor = torch.tensor([self.get_id(token, file) for token in res])
         return token_tensor
 
@@ -156,6 +159,7 @@ class TextDataset(Dataset, ):
         return len(self.files)
 
     def pad_data(self, x, max_seq):
+
         #print(f'max_seq: {max_seq}')
         padded_data = torch.zeros(max_seq+1)
         seq_len = x.shape[0]
@@ -172,7 +176,7 @@ class TextDataset(Dataset, ):
         padded_ex = padded_ex.int()
     #    print(padded_ex)
         eye = eye[padded_ex]
-        eye = eye.unsqueeze(0)
+        eye = eye
         return eye
 
     def __getitem__(self, idx):
@@ -196,12 +200,12 @@ class TextDataset(Dataset, ):
 if __name__ == '__main__':
     tokenized_data = []
     token_limit = 30000
-    dataset_type='floorplan'  #'cubicasa5k'
+    dataset_type='cubicasa5k'  #'cubicasa5k'
     tokenizer_meta_data = os.path.join('data', 'tokenizer_data', dataset_type + '_vocab_data_' + str(token_limit) + '.json')
 
-    tokenizer = Tokenizer(dataset_type=dataset_type, tokenizer_meta_data=tokenizer_meta_data, readInMetadata=False)
-    #dataset = os.listdir(os.path.join('data', dataset_type, 'no_text_2'))
-    dataset = os.listdir(os.path.join('data', dataset_type, 'svgs'))
+    tokenizer = Tokenizer(dataset_type=dataset_type, tokenizer_meta_data=tokenizer_meta_data, readInMetadata=False, token_limit=token_limit)
+    dataset = os.listdir(os.path.join('data', dataset_type, 'no_text_2'))
+    #dataset = os.listdir(os.path.join('data', dataset_type, 'svgs'))
     #dataset = None
     #with open(f'{dataset_type}_svgs<{token_limit}.json', 'r') as openfile:
     #    dataset = json.load(openfile)['small_files']
@@ -212,8 +216,8 @@ if __name__ == '__main__':
 
     t0 = time.time()
     for file in dataset:
-        #file = os.path.join('data', dataset_type, 'no_text_2', file)
-        file = os.path.join('data', dataset_type, 'svgs', file)
+        file = os.path.join('data', dataset_type, 'no_text_2', file)
+        #file = os.path.join('data', dataset_type, 'svgs', file)
         #print(f'file: {file}')
         with open(file, 'r') as f:
             text = ''.join(f.readlines())
