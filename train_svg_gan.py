@@ -55,9 +55,8 @@ def generate_images(timestr, netG, epoch, args, tokenizer):
 
             # Untokenize till end point
             while output[idx] != tokenizer.end_token and idx < len(output):
-                untokenized_data.append(tokenizer.get_token(output[idx].item()))
+                untokenized_data.append(tokenizer.get_token(str(output[idx].item())))
                 idx += 1
-            
             untokenized_str = ''.join(untokenized_data)
 
             f = open(os.path.join('results', timestr, 'generated_images', str(epoch) + '_' + str(i) + '.svg'), 'w')
@@ -217,10 +216,8 @@ def train(timestr, netG, netD, args, train_loader, tokenizer):
         best_D_G = max(epoch_D_G, best_D_G)
         best_D_x = max(epoch_D_x, best_D_x)
 
-        if epoch % 5 == 0:
-
-            # Generate images for this epoch
-            generate_images(timestr, netG, epoch, args, tokenizer)
+        # Generate images for this epoch
+        generate_images(timestr, netG, epoch, args, tokenizer)
 
     save_experiment(args, timestr, best_G_Loss, best_D_Loss, G_losses,
                     D_losses, best_d_model, best_g_model)
