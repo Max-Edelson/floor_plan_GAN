@@ -29,7 +29,7 @@ class Tokenizer(object):
             self.max_seq_len = meta_data['max_seq_len']
         #self.start_token = re.escape('<?xml version="1.0"?>\n<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"')
         
-        self.start_token1 = re.escape('<?xml version="1.0" encoding="UTF-8"?>\n<svg style="background-color: #000;" version="1.1" viewBox="0 0 100.0 100.0" xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape">')
+        self.start_token1 = re.escape('<?xml version="1.0" encoding="utf-8"?>\n<svg style="background-color: #000;" version="1.1" viewBox="0 0 100.0 100.0" xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape">')
         self.start_token2 = re.escape('<?xml version="1.0"?>\n<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"')
         #self.pattern =   r'(fill-opacity:\s*.*?[;\s/])|(stroke-opacity:\s*.*?[;\s/])|(stroke-width:\s*.*?[;\s/])|(pointer-events:\s*.*?[;\s/])'
         self.pattern = None
@@ -143,7 +143,6 @@ class TextDataset(Dataset, ):
     def __init__(self, tokenizer, transform=None, dataset_type='cubicasa5k', token_limit=50000):
         #self.root_dir = root_dir
         self.transform = transform
-        self.seq_limit = 100000
 
         # List all files in the directory
         self.files_json = f'{dataset_type}_svgs_{token_limit}.json' #os.listdir(root_dir)
@@ -181,7 +180,7 @@ class TextDataset(Dataset, ):
 
     def __getitem__(self, idx):
         # Open the file corresponding to idx
-        with open(self.files[idx], 'r') as f:
+        with open(self.files[idx], 'r', encoding="utf8") as f:
             text = f.read()
 
         file = self.files[idx]
@@ -200,12 +199,12 @@ class TextDataset(Dataset, ):
 if __name__ == '__main__':
     tokenized_data = []
     token_limit = 30000
-    dataset_type='cubicasa5k'  #'cubicasa5k'
+    dataset_type='floorplan'  #'cubicasa5k'
     tokenizer_meta_data = os.path.join('data', 'tokenizer_data', dataset_type + '_vocab_data_' + str(token_limit) + '.json')
 
     tokenizer = Tokenizer(dataset_type=dataset_type, tokenizer_meta_data=tokenizer_meta_data, readInMetadata=False, token_limit=token_limit)
-    dataset = os.listdir(os.path.join('data', dataset_type, 'no_text_2'))
-    #dataset = os.listdir(os.path.join('data', dataset_type, 'svgs'))
+    #dataset = os.listdir(os.path.join('data', dataset_type, 'no_text_2'))
+    dataset = os.listdir(os.path.join('data', dataset_type, 'svgs'))
     #dataset = None
     #with open(f'{dataset_type}_svgs<{token_limit}.json', 'r') as openfile:
     #    dataset = json.load(openfile)['small_files']
@@ -216,10 +215,10 @@ if __name__ == '__main__':
 
     t0 = time.time()
     for file in dataset:
-        file = os.path.join('data', dataset_type, 'no_text_2', file)
-        #file = os.path.join('data', dataset_type, 'svgs', file)
+        #file = os.path.join('data', dataset_type, 'no_text_2', file)
+        file = os.path.join('data', dataset_type, 'svgs', file)
         #print(f'file: {file}')
-        with open(file, 'r') as f:
+        with open(file, 'r', encoding="utf8") as f:
             text = ''.join(f.readlines())
         ids = tokenizer.tokenize(text)
         lengths.append(ids.shape[0])
