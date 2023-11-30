@@ -193,7 +193,7 @@ class TextDataset(Dataset, ):
             data_point = self.transform(data_point)
 
         data_point = self.pad_data(data_point, self.tokenizer.max_seq_len)
-        data_point = self.one_hot_encode(padded_ex=data_point, num_tokens=self.num_tokens)    
+        # data_point = self.one_hot_encode(padded_ex=data_point, num_tokens=self.num_tokens)
 
         return data_point
 

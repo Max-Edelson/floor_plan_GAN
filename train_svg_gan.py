@@ -148,15 +148,14 @@ def train(timestr, netG, netD, args, train_loader, tokenizer):
             # Sample noise as generator input
             z = torch.randn(data.shape[0], tokenizer.max_seq_len, args.noise_dim, device=device)
 
-            pdb.set_trace()
-
             # Generate a batch of images
-            fake_imgs = netG(z)
+            fake_imgs_soft = netG(z)
 
-            # yo yo
+            # Get the max from the sample
+            fake_imgs_hard = torch.argmax(fake_imgs_soft, dim=-1)
 
             real_validity = torch.mean(netD(data))
-            fake_validity = torch.mean(netD(fake_imgs.detach()))
+            fake_validity = torch.mean(netD(fake_imgs_hard.detach()))
 
             # Adversarial loss
             d_loss = -real_validity + fake_validity
@@ -178,11 +177,8 @@ def train(timestr, netG, netD, args, train_loader, tokenizer):
 
             optimizerG.zero_grad()
 
-            # Generate a batch of images
-            gen_imgs = netG(z)
-
             # Adversarial loss
-            g_loss = -torch.mean(netD(gen_imgs))
+            g_loss = -torch.mean(netD(fake_imgs_hard))
 
             # Update weights
             g_loss.backward()
@@ -238,7 +234,7 @@ def params():
     parser = argparse.ArgumentParser()
     parser.add_argument("--lr", default=2e-4, type=float,
                         help="Model learning rate starting point.")
-    parser.add_argument("--batch-size", default=8, type=int,
+    parser.add_argument("--batch-size", default=16, type=int,
                         help="Batch size per GPU/CPU for training and evaluation.")
     parser.add_argument("--weight-decay", default=1e-5, type=float,
                         help="L2 Regularization")
@@ -273,13 +269,11 @@ if __name__ == '__main__':
 
     train_dataset = TextDataset(tokenizer=tokenizer, dataset_type=dataset_type, token_limit=token_limit)
 
-    #end_token = tokenizer.ctr
-    #tokenizer.end_token = end_token
-    #tokenizer.ctr += 1
+    # end_token = tokenizer.ctr
+    # tokenizer.end_token = end_token
+    # tokenizer.ctr += 1
 
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
-
-    pdb.set_trace()
 
     # Create the Generator and Discriminator networks
     netG = Generator(
