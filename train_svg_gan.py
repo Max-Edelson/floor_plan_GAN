@@ -42,7 +42,8 @@ def generate_images(timestr, netG, epoch, args, tokenizer):
     with torch.no_grad():
 
         batch_output = netG(noise)
-        batch_output = batch_output.detach().cpu()[:10]
+        batch_output = batch_output.detach().cpu()[:args.batch_size]
+        batch_output = torch.argmax(batch_output, dim=-1)
 
         untokenized_data = []
 
@@ -181,7 +182,7 @@ def train(timestr, netG, netD, args, train_loader, tokenizer):
             g_loss = -torch.mean(netD(fake_imgs_hard))
 
             # Update weights
-            g_loss.backward()
+            (g_loss*fake_imgs_soft).mean().backward()
             optimizerG.step()
 
             # Update SWA parameters
