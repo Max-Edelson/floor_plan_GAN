@@ -55,6 +55,11 @@ def generate_images(timestr, netG, epoch, args, tokenizer):
 
             # Untokenize till end point
             while output[idx] != tokenizer.end_token and idx < len(output):
+
+                if output[idx].item() == 0:
+                    idx += 1
+                    continue
+
                 untokenized_data.append(tokenizer.get_token(str(output[idx].item())))
                 idx += 1
             untokenized_str = ''.join(untokenized_data)
