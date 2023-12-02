@@ -127,6 +127,7 @@ def train(timestr, netG, netD, args, train_loader, tokenizer):
     # Lists to keep track of progress
     G_losses = []
     D_losses = []
+    sig = torch.nn.Sigmoid()
 
     best_G_Loss, best_D_Loss, best_g_model, best_d_model = None, None, None, None
     best_D_x, best_D_G = 0, 0
@@ -161,6 +162,8 @@ def train(timestr, netG, netD, args, train_loader, tokenizer):
 
             real_validity = torch.mean(netD(data))
             fake_validity = torch.mean(netD(fake_imgs_hard.detach()))
+            D_x = torch.mean(sig(real_validity))
+            D_G = torch.mean(sig(fake_validity))
 
             # Adversarial loss
             d_loss = -real_validity + fake_validity
@@ -197,7 +200,7 @@ def train(timestr, netG, netD, args, train_loader, tokenizer):
             if i % 5 == 0:
                 print('[%d/%d][%d/%d]\tLoss_D: %.4f\tLoss_G: %.4f\t D(x): %.4f\t D(G(z)): %.4f'
                       % (epoch+1, args.epochs, i, len(train_loader),
-                         d_loss.item(), g_loss.item(), real_validity.item(), fake_validity.item()))
+                         d_loss.item(), g_loss.item(), D_x.item(), D_G.item()))
 
             epoch_D_Loss += d_loss.item()
             epoch_G_Loss += g_loss.item()
@@ -241,7 +244,7 @@ def params():
                         help="Batch size per GPU/CPU for training and evaluation.")
     parser.add_argument("--weight-decay", default=1e-5, type=float,
                         help="L2 Regularization")
-    parser.add_argument("--epochs", default=1,  type=int,
+    parser.add_argument("--epochs", default=12,  type=int,
                         help="Number of epochs to train for")
     parser.add_argument("--discriminator-hidden", default=64, type=int)
     parser.add_argument("--discriminator-layers", default=2, type=int)

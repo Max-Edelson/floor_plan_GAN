@@ -72,7 +72,6 @@ class Discriminator(nn.Module):
         self.lstm = nn.LSTM(embedding_dim, 32, num_layers=2, dropout=0.18, batch_first=True, bidirectional=True)
         self.fc = nn.Sequential(
             nn.Linear(32 * 2, 1),
-            nn.Sigmoid()
         )
 
     def forward(self, x):
