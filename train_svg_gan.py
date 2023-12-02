@@ -212,7 +212,7 @@ def train(timestr, netG, netD, args, train_loader, tokenizer):
         epoch_D_x /= len(train_loader)
 
         G_losses.append(epoch_G_Loss)
-        D_losses.append(-epoch_D_Loss)
+        D_losses.append(epoch_D_Loss)
 
         if best_D_Loss is None or epoch_D_Loss < best_D_Loss:
             best_D_Loss = epoch_D_Loss
