@@ -3,10 +3,13 @@ import torch; torch.manual_seed(0)
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils
+import torch.utils.data
+import torchvision.transforms as transforms
 import torch.distributions
 import torchvision
 from torchvision.utils import save_image
 from tqdm import tqdm as progress_bar
+from dataset import floorPlanDataset
 import numpy as np
 import matplotlib.pyplot as plt; plt.rcParams['figure.dpi'] = 200
 from vae_models import VariationalAutoencoder
@@ -59,3 +62,25 @@ def train(train_loader, latent_dims = 128):
         
         generate_images(timestr, vae, epoch, data)
     return vae
+
+class ThresholdTransform(object):
+
+  def __call__(self, x):
+    return (x > 0).to(x.dtype)  # do not change the data type
+
+if __name__ == '__main__':
+    resize_h = 256
+    resize_w = 256
+
+    new_folder_name = 'binary_images'
+    path = os.path.join('data', 'floorplan', new_folder_name)
+    transform = transforms.Compose([
+        ThresholdTransform(),
+        transforms.Normalize([0.5], [0.5]),
+        transforms.Resize((resize_h, resize_w))
+    ])
+    data = floorPlanDataset(path=path, transform=transform)
+    # Dataloader
+    dataloader = torch.utils.data.DataLoader(data, batch_size=BATCH_SIZE,
+                                                shuffle=True)
+    train(dataloader)
