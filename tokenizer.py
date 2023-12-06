@@ -198,7 +198,7 @@ class TextDataset(Dataset, ):
 
 if __name__ == '__main__':
     tokenized_data = []
-    token_limit = 30000
+    token_limit = 7500
     dataset_type='floorplan'  #'cubicasa5k'
     tokenizer_meta_data = os.path.join('data', 'tokenizer_data', dataset_type + '_vocab_data_' + str(token_limit) + '.json')
 
