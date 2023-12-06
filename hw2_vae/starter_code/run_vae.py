@@ -39,7 +39,7 @@ resize_h = 256
 resize_w = 256
 
 new_folder_name = 'binary_images'
-path = os.path.join('..', '..','data', 'floorplan', new_folder_name)
+path = os.path.join('data', 'floorplan', new_folder_name)
 print(f'path: {path}')
 transform = transforms.Compose([
     ThresholdTransform(),
@@ -48,8 +48,7 @@ transform = transforms.Compose([
 ])
 data = floorPlanDataset(path=path, transform=transform)
 # Dataloader
-train_loader = torch.utils.data.DataLoader(data, batch_size=128,
-                                            shuffle=True)
+train_loader = torch.utils.data.DataLoader(data, batch_size=256, shuffle=True)
 
 vae_original = VAE(z_dim=args.z, name=model_name).to(device)
 

@@ -6,7 +6,9 @@ import torch
 from codebase import utils as ut
 from torch import nn, optim
 from torch.nn import functional as F
+import matplotlib.pyplot as plt
 from torchvision.utils import save_image
+import time
 
 def train(model, train_loader, labeled_subset, device, tqdm, writer,
           iter_max=np.inf, iter_save=np.inf,
@@ -15,15 +17,21 @@ def train(model, train_loader, labeled_subset, device, tqdm, writer,
     if reinitialize:
         model.apply(ut.reset_weights)
     optimizer = optim.Adam(model.parameters(), lr=1e-3)
+    timestr = time.strftime("%Y%m%d-%H%M%S")
     i = 0
     with tqdm(total=iter_max) as pbar:
+        batch = 0
+        data = None
         while True:
+            model.train()
             for batch_idx, xu in enumerate(train_loader):
                 i += 1 # i is num of gradient steps taken by end of loop iteration
                 optimizer.zero_grad()
+                data = xu.to(device).reshape(xu.size(0), -1)
 
                 if y_status == 'none':
-                    xu = torch.bernoulli(xu.to(device).reshape(xu.size(0), -1))
+                    # xu = torch.bernoulli(xu.to(device).reshape(xu.size(0), -1))
+                    xu = xu.to(device).reshape(xu.size(0), -1)
                     #yu = yu.new(np.eye(10)[yu]).to(device).float()
                     loss, summaries = model.loss(xu)
 
@@ -74,3 +82,16 @@ def train(model, train_loader, labeled_subset, device, tqdm, writer,
 
                 if i == iter_max:
                     return
+
+            with torch.no_grad():
+                qm, qv = model.enc.encode(data) # encoded data
+                z = ut.sample_gaussian(qm, qv)
+                recon_x = model.dec.decode(z)[:20].reshape(20,256,256).detach()
+                #X = model.sample_x(20)
+                path = os.path.join('results', 'vae', timestr)
+                if not os.path.exists(path): os.mkdir(path)
+                path = os.path.join(path, f'examples{batch}.png')
+                print(f'recon_x: {recon_x.shape}')
+                save_image(recon_x, path, nrow=5)
+                batch += 1
+            print()

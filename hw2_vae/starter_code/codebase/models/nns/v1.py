@@ -16,7 +16,7 @@ class Encoder(nn.Module):
             nn.ELU(),
             nn.Linear(300, 300),
             nn.ELU(),
-            nn.Linear(300, 2 * z_dim),
+            nn.Linear(300, 2 * z_dim)
         )
 
     def encode(self, x, y=None):
