@@ -86,12 +86,12 @@ def train(model, train_loader, labeled_subset, device, tqdm, writer,
             with torch.no_grad():
                 qm, qv = model.enc.encode(data) # encoded data
                 z = ut.sample_gaussian(qm, qv)
-                recon_x = model.dec.decode(z)[:20].reshape(20,256,256).detach()
+                recon_x = model.dec.decode(z)[:20].reshape(20,1,256,256).detach()
                 #X = model.sample_x(20)
                 path = os.path.join('results', 'vae', timestr)
                 if not os.path.exists(path): os.mkdir(path)
                 path = os.path.join(path, f'examples{batch}.png')
-                print(f'recon_x: {recon_x.shape}')
+                print(f'recon_x: {recon_x}')
                 save_image(recon_x, path, nrow=5)
                 batch += 1
             print()
