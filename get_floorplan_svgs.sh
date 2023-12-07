@@ -7,7 +7,7 @@ targetPath="${data}svgs/"
 if [ -d "$targetPath" ]; then
     rm -rf "$targetPath"
 fi
-mkdir "$targetPath"
+mkdir -p "$targetPath"
 
 for set in ${sets[@]}; do
     path="${data}${set}"
