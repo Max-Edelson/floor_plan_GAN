@@ -9,14 +9,17 @@ Move `tokenizer_data/` into the data directory to be `data/tokenizer_data/`. Thi
 The dataset names and paths have been hardcoded in the training files, so when running a training program, make sure to double check paths.
 ### Images
 An example of the data we are training on is shown before (CubiCasa5k left, FloorplanCAD right).
+
 ![image](examples/ex_floor_plans.jpg)
 
 Below are some examples of our generated images using various architectures.
 
 **Deep Convolutional GAN**
+
 ![image](examples/DCGAN-Small.jpg)
 
 **Self-Attention GAN**
+
 ![image](examples/SAGAN.jpg)
 
 ### Text data
